@@ -1,0 +1,22 @@
+{
+  "name": "rbac-cli",
+  "version": "0.1.0",
+  "description": "CLI for Solana RBAC + Guarded Vault programs",
+  "scripts": {
+    "cli": "tsx src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/web3.js": "^1.98.4",
+    "bn.js": "^5.2.3",
+    "chalk": "5.6.2",
+    "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.2.0",
+    "@types/node": "^25.3.5",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
