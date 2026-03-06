@@ -708,28 +708,31 @@ solana program show HgHvXGBihfmreQvnpm5JLbBLQUvkyWTqo7ryaFnez6uY
 
 ## CLI Usage
 
+A full-featured TypeScript CLI is available in the [`cli/`](./cli) directory. It wraps every program instruction with transaction simulation, dry-run mode, retry with exponential backoff, structured error messages, and shell tab-completion.
+
 ```bash
-# Organization management
-npx ts-node cli/src/main.ts create-org "my-company" --cluster devnet
-npx ts-node cli/src/main.ts show-org "my-company" --cluster devnet
+cd cli && npm install
 
-# Role management
-npx ts-node cli/src/main.ts create-role "my-company" "editor" "READ,WRITE" --cluster devnet
-npx ts-node cli/src/main.ts show-role "my-company" 0 --cluster devnet
+# Create an org and roles
+npx tsx src/index.ts org init my-org
+npx tsx src/index.ts role create writer "READ,WRITE,DELETE"
 
-# Membership management
-npx ts-node cli/src/main.ts assign-role "my-company" <MEMBER_PUBKEY> 0 --cluster devnet
-npx ts-node cli/src/main.ts show-membership "my-company" <MEMBER_PUBKEY> --cluster devnet
-
-# Permission checks
-npx ts-node cli/src/main.ts check-permission "my-company" <MEMBER_PUBKEY> "WRITE" --cluster devnet
+# Assign a role and check permissions
+npx tsx src/index.ts member assign $(solana-keygen pubkey) 0
+npx tsx src/index.ts member check $(solana-keygen pubkey) WRITE
 
 # Vault operations
-npx ts-node cli/src/main.ts create-vault "my-company" "config" '{"key":"value"}' --cluster devnet
+npx tsx src/index.ts vault create secrets '{"api_key":"sk_live_123"}'
+npx tsx src/index.ts vault read secrets
 
-# Full interactive demo
-npx ts-node cli/src/main.ts demo --cluster devnet
+# Simulate without spending SOL
+npx tsx src/index.ts --dry-run vault create test '{"x":1}'
+
+# Run the full end-to-end lifecycle demo
+bash cli/demo.sh
 ```
+
+**→ See [`cli/README.md`](./cli/README.md) for the complete command reference, global options, transaction engine details, and shell completion setup.**
 
 ---
 
@@ -781,13 +784,48 @@ solana-rbac/
 │       └── Cargo.toml
 │
 ├── tests/
-│   └── rbac.ts                             # Integration tests
-├── cli/
-│   └── src/
-│       └── main.ts                         # CLI client
-├── Anchor.toml
-├── Cargo.toml
-└── README.md
+│   ├── rbac.ts                             # Test entry point
+│   ├── rbac/
+│   │   ├── 01_organization.ts              # Org init, transfer, close
+│   │   ├── 02_roles.ts                     # Role create, update, deactivate, close
+│   │   ├── 03_membership.ts                # Assign, revoke, expiry
+│   │   ├── 04_permissions.ts               # Permission checks (granted + denied)
+│   │   ├── 05_refresh.ts                   # Stale cache + epoch refresh
+│   │   ├── 06_security.ts                  # Delegation guard, escalation attempts
+│   │   ├── 07_cleanup.ts                   # Full lifecycle teardown
+│   │   └── helpers.ts                      # Shared test utilities
+│   ├── guarded_vault/
+│   │   ├── 01_cpi_integration.ts           # Vault CRUD via CPI permission checks
+│   │   └── 02_cpi_denied.ts                # CPI rejection when permission denied
+│   └── utils/
+│       ├── pda.ts                          # PDA derivation helpers
+│       └── permission_constants.ts         # Shared permission bitmaps
+├── cli/                                    # TypeScript CLI
+│   ├── src/
+│   │   ├── commands/
+│   │   │   ├── config.ts                   # config status, reset
+│   │   │   ├── member.ts                   # assign, revoke, show, check, refresh, etc.
+│   │   │   ├── org.ts                      # init, show, use, list, transfer-admin, close
+│   │   │   ├── role.ts                     # create, show, list, update, deactivate, etc.
+│   │   │   └── vault.ts                    # create, write, read, delete, show, list
+│   │   ├── ui/
+│   │   │   ├── banner.ts                   # Pre-command header
+│   │   │   ├── format.ts                   # Box drawing, tables, pubkey truncation
+│   │   │   ├── prompts.ts                  # Interactive confirmations
+│   │   │   ├── spinner.ts                  # Transaction progress spinner
+│   │   │   └── theme.ts                    # Centralized chalk color palette
+│   │   ├── completion.ts                   # bash/zsh/fish tab-completion scripts
+│   │   ├── display.ts                      # All print functions (org, role, member, vault)
+│   │   ├── errors.ts                       # Structured Anchor/Solana error parsing
+│   │   ├── index.ts                        # Entry point + global flags
+│   │   ├── pda.ts                          # PDA derivation (mirrors on-chain seeds)
+│   │   ├── permissions.ts                  # Bitmap parsing, decoding, formatting
+│   │   ├── setup.ts                        # Provider, IDL loading, config file
+│   │   ├── tx.ts                           # Transaction engine (simulate/retry/log)
+│   │   └── validation.ts                   # Input validation (pubkeys, names, labels)
+│   ├── demo.sh                             # End-to-end lifecycle demo
+│   ├── package.json
+│   └── tsconfig.json
 ```
 
 ---

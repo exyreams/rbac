@@ -51,6 +51,8 @@ bash demo.sh
 | `--json` | Output as JSON | off |
 | `--verbose` | Show full pubkeys | off |
 | `-f, --force` | Skip confirmations | off |
+| `--dry-run` | Simulate only, no send | off |
+| `--priority-fee <micro-lamports>` | Priority fee per compute unit | `1000` |
 
 ## Command Reference
 
@@ -86,7 +88,7 @@ member assign <pubkey> <role>    # Assign role (creates membership if needed)
   --expires-in <seconds>         #   Expire N seconds from now
 member revoke <pubkey> <role>    # Revoke a role
 member show <pubkey>             # Show membership details
-member check <pubkey> <perms>    # Check permissions (off-chain)
+member check <pubkey> <perms>    # Check permissions (off-chain, auto-refreshes stale cache)
   --on-chain                     #   Verify via CPI transaction
 member refresh <pubkey>          # Refresh cached permissions
 member update-expiry <pubkey>    # Update expiry
@@ -102,7 +104,7 @@ member list                      # List all members (table view)
 ```bash
 vault create <label> <data>      # Create vault (WRITE required)
 vault write <label> <data>       # Update vault data (WRITE required)
-vault read <label>               # On-chain read with audit (READ required)
+vault read <label>               # On-chain read with audit trail (READ required)
 vault delete <label>             # Delete vault (DELETE required)
 vault show <label>               # Off-chain read (no permission check)
 vault list                       # List all vaults (table view)
@@ -113,6 +115,18 @@ vault list                       # List all vaults (table view)
 ```bash
 config status                    # Show wallet, balance, cluster, org
 config reset                     # Clear active organization
+```
+
+### Shell Completion (`completion`)
+
+```bash
+completion bash                  # Generate bash completion script
+completion zsh                   # Generate zsh completion script
+completion fish                  # Generate fish completion script
+
+# Install examples:
+eval "$(npx tsx src/index.ts completion bash)"
+rbac-cli completion fish | source
 ```
 
 ## Permission System
@@ -137,6 +151,23 @@ Permissions can be specified as:
 - **Hex**: `0x7`
 - **Decimal**: `7`
 
+## Transaction Engine
+
+Every on-chain write goes through a multi-phase pipeline:
+
+1. **Compute budget** — attaches `SetComputeUnitLimit` and `SetComputeUnitPrice` instructions automatically
+2. **Simulation** — transaction is simulated before any SOL is spent; structured errors are surfaced immediately
+3. **Dry-run** (`--dry-run`) — simulation only, no transaction sent; prints estimated compute units
+4. **Retry** — network errors (blockhash expiry, timeouts, rate limits) retry up to 3× with exponential backoff
+5. **Logging** — every confirmed transaction is appended to `.rbac-cli-log.jsonl`
+
+## Local Files
+
+| File | Purpose |
+|------|---------|
+| `.rbac-cli.json` | Active organization address and metadata |
+| `.rbac-cli-log.jsonl` | JSONL transaction log (timestamp, signature, operation) |
+
 ## Architecture
 
 ```
@@ -148,7 +179,7 @@ Organization (tenant)
 
 - **Bitmap permissions**: 64 roles in 8 bytes, O(1) checks
 - **Cached permissions**: avoids loading N role accounts per check
-- **Permissions epoch**: detects stale caches after role updates
+- **Permissions epoch**: detects stale caches after role updates; `member check` auto-refreshes
 - **Reference counting**: prevents closing roles with active members
 - **Delegation guard**: non-admins can only assign roles they hold
 
@@ -158,6 +189,8 @@ Run `bash demo.sh` to see the full lifecycle:
 
 1. Create org → create roles → assign members
 2. Permission checks (granted + denied)
-3. Vault CRUD with CPI permission enforcement
-4. Role update → stale cache detection → refresh
-5. Full cleanup with admin transfer flow
+3. Dry-run simulation demo
+4. Vault CRUD with CPI permission enforcement
+5. Role update → stale cache detection → auto-refresh
+6. Full cleanup with admin transfer flow
+7. Transaction log summary
