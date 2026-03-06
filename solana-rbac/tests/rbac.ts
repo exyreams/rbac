@@ -1,16 +1,33 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Rbac } from "../target/types/rbac";
+import { setupContext } from "./rbac/helpers";
+import { organizationTests } from "./rbac/01_organization";
+import { roleTests } from "./rbac/02_roles";
+import { membershipTests } from "./rbac/03_membership";
+import { permissionTests } from "./rbac/04_permissions";
+import { refreshTests } from "./rbac/05_refresh";
+import { securityTests } from "./rbac/06_security";
+import { cpiIntegrationTests } from "./guarded_vault/01_cpi_integration";
+import { cpiDeniedTests } from "./guarded_vault/02_cpi_denied";
+import { cleanupTests } from "./rbac/07_cleanup";
 
-describe("rbac", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
+describe("RBAC + Guarded Vault", function () {
+  this.timeout(120_000);
 
-  const program = anchor.workspace.Rbac as Program<Rbac>;
-
-  it("Is initialized!", async () => {
-    // Add your test here.
-    const tx = await program.methods.initialize().rpc();
-    console.log("Your transaction signature", tx);
+  before(async function () {
+    await setupContext();
   });
+
+  // RBAC core program tests (in dependency order)
+  organizationTests();
+  roleTests();
+  membershipTests();
+  permissionTests();
+  refreshTests();
+  securityTests();
+
+  // CPI consumer program tests
+  cpiIntegrationTests();
+  cpiDeniedTests();
+
+  // Cleanup (must run last)
+  cleanupTests();
 });
