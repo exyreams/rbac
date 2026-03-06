@@ -1,12 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { SolanaRbac } from "../target/types/solana_rbac";
+import { Rbac } from "../target/types/rbac";
 
-describe("solana-rbac", () => {
+describe("rbac", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
-  const program = anchor.workspace.solanaRbac as Program<SolanaRbac>;
+  const program = anchor.workspace.Rbac as Program<Rbac>;
 
   it("Is initialized!", async () => {
     // Add your test here.
