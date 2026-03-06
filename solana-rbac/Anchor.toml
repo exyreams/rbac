@@ -13,7 +13,7 @@ guarded_vault = "HgHvXGBihfmreQvnpm5JLbBLQUvkyWTqo7ryaFnez6uY"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
