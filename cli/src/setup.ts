@@ -82,10 +82,16 @@ export function getProvider(
 // ── IDL loading ───────────────────────────────────────────────
 function findIdl(name: string): any {
   const candidates = [
+    // From CLI directory (cli/target/idl/)
     path.resolve(process.cwd(), `target/idl/${name}.json`),
+    // Up one level (if running from cli/, look at sibling solana-rbac/)
     path.resolve(process.cwd(), `../target/idl/${name}.json`),
+    // The actual workspace location: ../solana-rbac/target/idl/
+    path.resolve(process.cwd(), `../solana-rbac/target/idl/${name}.json`),
+    // From __dirname (compiled file location)
     path.resolve(__dirname, `../../target/idl/${name}.json`),
-    path.resolve(__dirname, `../../../target/idl/${name}.json`),
+    path.resolve(__dirname, `../../solana-rbac/target/idl/${name}.json`),
+    path.resolve(__dirname, `../../../solana-rbac/target/idl/${name}.json`),
   ];
   for (const p of candidates) {
     if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, "utf-8"));

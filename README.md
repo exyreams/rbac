@@ -753,6 +753,7 @@ solana-rbac/
 │   │   │   │   ├── deactivate_role.rs      # Soft-disable role
 │   │   │   │   ├── initialize_org.rs       # Organization creation
 │   │   │   │   ├── leave_organization.rs   # Self-service departure
+│   │   │   │   ├── mod.rs                  # Instruction module exports
 │   │   │   │   ├── reactivate_role.rs      # Re-enable role
 │   │   │   │   ├── refresh_permissions.rs  # Cache recomputation
 │   │   │   │   ├── revoke_role.rs          # Role removal with ref count
@@ -761,6 +762,7 @@ solana-rbac/
 │   │   │   │   └── update_role_permissions.rs  # + epoch increment
 │   │   │   ├── state/
 │   │   │   │   ├── membership.rs           # Member ↔ roles binding + cache
+│   │   │   │   ├── mod.rs                  # State module exports
 │   │   │   │   ├── organization.rs         # Top-level tenant + epoch
 │   │   │   │   └── role.rs                 # Permission set + ref count
 │   │   │   ├── constants.rs                # Permission bits + helpers
@@ -772,11 +774,13 @@ solana-rbac/
 │   └── guarded_vault/
 │       ├── src/
 │       │   ├── instructions/
+│       │   │   ├── delete_vault.rs         # Delete vault (DELETE via CPI)
 │       │   │   ├── initialize_vault.rs     # Create vault (WRITE via CPI)
-│       │   │   ├── write_vault.rs          # Update vault (WRITE via CPI)
+│       │   │   ├── mod.rs                  # Instruction module exports
 │       │   │   ├── read_vault.rs           # Audit read (READ via CPI)
-│       │   │   └── delete_vault.rs         # Delete vault (DELETE via CPI)
+│       │   │   └── write_vault.rs          # Update vault (WRITE via CPI)
 │       │   ├── state/
+│       │   │   ├── mod.rs                  # State module exports
 │       │   │   └── vault.rs                # Vault data + versioning
 │       │   ├── errors.rs
 │       │   ├── events.rs
@@ -800,32 +804,33 @@ solana-rbac/
 │   └── utils/
 │       ├── pda.ts                          # PDA derivation helpers
 │       └── permission_constants.ts         # Shared permission bitmaps
-├── cli/                                    # TypeScript CLI
-│   ├── src/
-│   │   ├── commands/
-│   │   │   ├── config.ts                   # config status, reset
-│   │   │   ├── member.ts                   # assign, revoke, show, check, refresh, etc.
-│   │   │   ├── org.ts                      # init, show, use, list, transfer-admin, close
-│   │   │   ├── role.ts                     # create, show, list, update, deactivate, etc.
-│   │   │   └── vault.ts                    # create, write, read, delete, show, list
-│   │   ├── ui/
-│   │   │   ├── banner.ts                   # Pre-command header
-│   │   │   ├── format.ts                   # Box drawing, tables, pubkey truncation
-│   │   │   ├── prompts.ts                  # Interactive confirmations
-│   │   │   ├── spinner.ts                  # Transaction progress spinner
-│   │   │   └── theme.ts                    # Centralized chalk color palette
-│   │   ├── completion.ts                   # bash/zsh/fish tab-completion scripts
-│   │   ├── display.ts                      # All print functions (org, role, member, vault)
-│   │   ├── errors.ts                       # Structured Anchor/Solana error parsing
-│   │   ├── index.ts                        # Entry point + global flags
-│   │   ├── pda.ts                          # PDA derivation (mirrors on-chain seeds)
-│   │   ├── permissions.ts                  # Bitmap parsing, decoding, formatting
-│   │   ├── setup.ts                        # Provider, IDL loading, config file
-│   │   ├── tx.ts                           # Transaction engine (simulate/retry/log)
-│   │   └── validation.ts                   # Input validation (pubkeys, names, labels)
-│   ├── demo.sh                             # End-to-end lifecycle demo
-│   ├── package.json
-│   └── tsconfig.json
+│
+cli/                                        # TypeScript CLI
+├── src/
+│   ├── commands/
+│   │   ├── config.ts                       # config status, reset
+│   │   ├── member.ts                       # assign, revoke, show, check, refresh, etc.
+│   │   ├── org.ts                          # init, show, use, list, transfer-admin, close
+│   │   ├── role.ts                         # create, show, list, update, deactivate, etc.
+│   │   └── vault.ts                        # create, write, read, delete, show, list
+│   ├── ui/
+│   │   ├── banner.ts                       # Pre-command header
+│   │   ├── format.ts                       # Box drawing, tables, pubkey truncation
+│   │   ├── prompts.ts                      # Interactive confirmations
+│   │   ├── spinner.ts                      # Transaction progress spinner
+│   │   └── theme.ts                        # Centralized chalk color palette
+│   ├── completion.ts                       # bash/zsh/fish tab-completion scripts
+│   ├── display.ts                          # All print functions (org, role, member, vault)
+│   ├── errors.ts                           # Structured Anchor/Solana error parsing
+│   ├── index.ts                            # Entry point + global flags
+│   ├── pda.ts                              # PDA derivation (mirrors on-chain seeds)
+│   ├── permissions.ts                      # Bitmap parsing, decoding, formatting
+│   ├── setup.ts                            # Provider, IDL loading, config file
+│   ├── tx.ts                               # Transaction engine (simulate/retry/log)
+│   └── validation.ts                       # Input validation (pubkeys, names, labels)
+├── demo.sh                                 # End-to-end lifecycle demo
+├── package.json
+└── tsconfig.json
 ```
 
 ---

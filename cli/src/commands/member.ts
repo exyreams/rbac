@@ -1,38 +1,37 @@
 /**
- * member.ts — Membership and role assignment commands.
- * assign, revoke, show, check, refresh, update-expiry, leave, close, list.
+ * member.ts — Membership management with auto-refresh and executeTx engine.
  */
 import { Command } from "commander";
-import { SystemProgram } from "@solana/web3.js";
+import { PublicKey, SystemProgram } from "@solana/web3.js";
 import BN from "bn.js";
-import {
-  getProvider,
-  getRbacProgram,
-  getGlobalOpts,
-  requireOrg,
-} from "../setup";
+import { getProvider, getRbacProgram, getGlobalOpts, requireOrg } from "../setup";
 import { findRolePda, findMembershipPda } from "../pda";
 import { validatePubkey, validateRoleIndex } from "../validation";
+import { parsePermissions, hasPermission } from "../permissions";
 import {
-  parsePermissions,
-  hasPermission,
-} from "../permissions";
-import {
-  printMembership,
-  printMemberTable,
-  printPermCheck,
-  printTx,
-  printErr,
+  printMembership, printMemberTable, printPermCheck,
+  printTx, printErr, printInfo,
 } from "../display";
 import { truncKey } from "../ui/format";
 import { T } from "../ui/theme";
 import { Spinner } from "../ui/spinner";
 import { confirm } from "../ui/prompts";
+import { executeTx } from "../tx";
+
+/** Build remaining_accounts for role PDAs from a bitmap. */
+function buildRoleAccounts(orgAddress: PublicKey, bitmap: BN): any[] {
+  const accounts: any[] = [];
+  for (let i = 0; i < 64; i++) {
+    if (!bitmap.and(new BN(1).shln(i)).isZero()) {
+      const [rPda] = findRolePda(orgAddress, i);
+      accounts.push({ pubkey: rPda, isWritable: false, isSigner: false });
+    }
+  }
+  return accounts;
+}
 
 export function registerMemberCommands(parent: Command): void {
-  const member = parent
-    .command("member")
-    .description("Membership and role assignment management");
+  const member = parent.command("member").description("Membership and role assignment management");
 
   // ── assign ───────────────────────────────────────────────────
   member
@@ -41,6 +40,7 @@ export function registerMemberCommands(parent: Command): void {
     .option("-e, --expires <timestamp>", "Unix timestamp for expiry")
     .option("--expires-in <seconds>", "Seconds from now until expiry")
     .action(async (memberStr: string, roleIdxStr: string, opts: any, cmd: Command) => {
+      const spin = new Spinner("Assigning role...").start();
       try {
         const memberKey = validatePubkey(memberStr, "member");
         const roleIndex = validateRoleIndex(roleIdxStr);
@@ -53,19 +53,15 @@ export function registerMemberCommands(parent: Command): void {
         const [membershipPda] = findMembershipPda(org.address, memberKey);
 
         let expiresAt: BN | null = null;
-        if (opts.expires) {
-          expiresAt = new BN(opts.expires);
-        } else if (opts.expiresIn) {
-          expiresAt = new BN(Math.floor(Date.now() / 1000) + parseInt(opts.expiresIn, 10));
-        }
+        if (opts.expires) expiresAt = new BN(opts.expires);
+        else if (opts.expiresIn) expiresAt = new BN(Math.floor(Date.now() / 1000) + parseInt(opts.expiresIn, 10));
 
         const signer = provider.wallet.publicKey;
         const orgData = await (program.account as any).organization.fetch(org.address);
         const isAdmin = signer.equals(orgData.admin);
         const [authPda] = findMembershipPda(org.address, signer);
 
-        const spin = new Spinner("Assigning role...").start();
-        const sig = await program.methods
+        const builder = program.methods
           .assignRole(roleIndex, expiresAt)
           .accountsPartial({
             authority: signer,
@@ -75,12 +71,14 @@ export function registerMemberCommands(parent: Command): void {
             member: memberKey,
             membership: membershipPda,
             systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-        spin.succeed("Role assigned");
-        printTx(`Role ${roleIndex} assigned to ${truncKey(memberKey)}`, sig, g.cluster);
+          });
+
+        const result = await executeTx({ builder, provider, spinner: spin, label: "assignRole", priorityFee: g.priorityFee });
+        spin.succeed(result.dryRun ? "Dry run — simulation passed" : "Role assigned");
+        printTx(`Role ${roleIndex} assigned to ${truncKey(memberKey)}`, result.signature, g.cluster);
       } catch (err: any) {
-        printErr(err.message || err);
+        spin.fail();
+        printErr(err);
       }
     });
 
@@ -89,6 +87,7 @@ export function registerMemberCommands(parent: Command): void {
     .command("revoke <member-pubkey> <role-index>")
     .description("Revoke a role from a member")
     .action(async (memberStr: string, roleIdxStr: string, _opts: any, cmd: Command) => {
+      const spin = new Spinner("Revoking role...").start();
       try {
         const memberKey = validatePubkey(memberStr, "member");
         const roleIndex = validateRoleIndex(roleIdxStr);
@@ -100,34 +99,17 @@ export function registerMemberCommands(parent: Command): void {
         const [rolePda] = findRolePda(org.address, roleIndex);
         const [membershipPda] = findMembershipPda(org.address, memberKey);
 
-        // Fetch current bitmap to compute remaining roles after revocation
         const mData = await (program.account as any).membership.fetch(membershipPda);
         const currentBitmap = new BN(mData.rolesBitmap);
-        const revokeBit = new BN(1).shln(roleIndex);
-        const newBitmap = currentBitmap.and(revokeBit.notn(64));
-
-        // Build remaining_accounts for roles that will still be held
-        const remainingAccounts: any[] = [];
-        if (!newBitmap.isZero()) {
-          for (let i = 0; i < 64; i++) {
-            if (!newBitmap.and(new BN(1).shln(i)).isZero()) {
-              const [rPda] = findRolePda(org.address, i);
-              remainingAccounts.push({
-                pubkey: rPda,
-                isWritable: false,
-                isSigner: false,
-              });
-            }
-          }
-        }
+        const newBitmap = currentBitmap.and(new BN(1).shln(roleIndex).notn(64));
+        const remainingAccounts = buildRoleAccounts(org.address, newBitmap);
 
         const signer = provider.wallet.publicKey;
         const orgData = await (program.account as any).organization.fetch(org.address);
         const isAdmin = signer.equals(orgData.admin);
         const [authPda] = findMembershipPda(org.address, signer);
 
-        const spin = new Spinner("Revoking role...").start();
-        const sig = await program.methods
+        const builder = program.methods
           .revokeRole(roleIndex)
           .accountsPartial({
             authority: signer,
@@ -136,12 +118,14 @@ export function registerMemberCommands(parent: Command): void {
             role: rolePda,
             membership: membershipPda,
           })
-          .remainingAccounts(remainingAccounts)
-          .rpc();
-        spin.succeed("Role revoked");
-        printTx(`Role ${roleIndex} revoked from ${truncKey(memberKey)}`, sig, g.cluster);
+          .remainingAccounts(remainingAccounts);
+
+        const result = await executeTx({ builder, provider, spinner: spin, label: "revokeRole", priorityFee: g.priorityFee });
+        spin.succeed(result.dryRun ? "Dry run — simulation passed" : "Role revoked");
+        printTx(`Role ${roleIndex} revoked from ${truncKey(memberKey)}`, result.signature, g.cluster);
       } catch (err: any) {
-        printErr(err.message || err);
+        spin.fail();
+        printErr(err);
       }
     });
 
@@ -157,18 +141,17 @@ export function registerMemberCommands(parent: Command): void {
         const program = getRbacProgram(provider);
         const org = requireOrg();
         const [membershipPda] = findMembershipPda(org.address, memberKey);
-
         const data = await (program.account as any).membership.fetch(membershipPda);
         printMembership(data, membershipPda);
       } catch (err: any) {
-        printErr(err.message || err);
+        printErr(err);
       }
     });
 
-  // ── check ────────────────────────────────────────────────────
+  // ── check (with auto-refresh) ────────────────────────────────
   member
     .command("check <member-pubkey> <permissions>")
-    .description("Check if a member has the required permissions")
+    .description("Check if a member has required permissions")
     .option("--on-chain", "Verify on-chain via CPI (costs tx fee)")
     .action(async (memberStr: string, permsStr: string, opts: any, cmd: Command) => {
       try {
@@ -183,38 +166,64 @@ export function registerMemberCommands(parent: Command): void {
         if (opts.onChain) {
           const spin = new Spinner("Checking on-chain...").start();
           try {
-            const sig = await program.methods
+            const builder = program.methods
               .checkPermission(required)
-              .accountsPartial({
-                organization: org.address,
-                membership: membershipPda,
-              })
-              .rpc();
-            spin.succeed("Permission GRANTED (on-chain)");
-            printTx(`On-chain check passed for ${truncKey(memberKey)}`, sig, g.cluster);
+              .accountsPartial({ organization: org.address, membership: membershipPda });
+
+            const result = await executeTx({ builder, provider, spinner: spin, label: "checkPermission", priorityFee: g.priorityFee });
+            spin.succeed(result.dryRun ? "Dry run — simulation passed" : "Permission GRANTED (on-chain)");
+            printTx(`On-chain check passed for ${truncKey(memberKey)}`, result.signature, g.cluster);
           } catch (err: any) {
             spin.fail("Permission DENIED (on-chain)");
-            printErr(err.message || err);
+            printErr(err);
           }
           return;
         }
 
-        // Off-chain check
-        const data = await (program.account as any).membership.fetch(membershipPda);
+        let data = await (program.account as any).membership.fetch(membershipPda);
         const orgData = await (program.account as any).organization.fetch(org.address);
 
-        const cachedBN = new BN(data.cachedPermissions);
-        const memberEpoch = new BN(data.permissionsEpoch);
+        let cachedBN = new BN(data.cachedPermissions);
+        let memberEpoch = new BN(data.permissionsEpoch);
         const orgEpoch = new BN(orgData.permissionsEpoch);
+
+        if (!memberEpoch.eq(orgEpoch)) {
+          if (!g.json) {
+            console.log(`\n  ${T.warn("⚠")} Permissions cache is stale (epoch ${memberEpoch}/${orgEpoch})`);
+          }
+
+          const shouldRefresh = g.force || (!g.json && await confirm("Auto-refresh permissions now?"));
+
+          if (shouldRefresh) {
+            const refreshSpin = new Spinner("Refreshing permissions...").start();
+            try {
+              const bitmap = new BN(data.rolesBitmap);
+              const remainingAccounts = buildRoleAccounts(org.address, bitmap);
+
+              const refreshBuilder = program.methods
+                .refreshPermissions()
+                .accountsPartial({ payer: provider.wallet.publicKey, organization: org.address, membership: membershipPda })
+                .remainingAccounts(remainingAccounts);
+
+              await executeTx({ builder: refreshBuilder, provider, spinner: refreshSpin, label: "refreshPermissions", priorityFee: g.priorityFee });
+              refreshSpin.succeed("Permissions refreshed");
+
+              data = await (program.account as any).membership.fetch(membershipPda);
+              cachedBN = new BN(data.cachedPermissions);
+              memberEpoch = new BN(data.permissionsEpoch);
+            } catch (err: any) {
+              refreshSpin.fail();
+              printErr(err);
+              return;
+            }
+          }
+        }
 
         let granted = false;
         if (!data.isActive) {
           granted = false;
-        } else if (data.expiresAt) {
-          const exp = new BN(data.expiresAt).toNumber();
-          if (exp < Math.floor(Date.now() / 1000)) granted = false;
-          else if (!memberEpoch.eq(orgEpoch)) granted = false;
-          else granted = hasPermission(cachedBN, required);
+        } else if (data.expiresAt && new BN(data.expiresAt).toNumber() < Math.floor(Date.now() / 1000)) {
+          granted = false;
         } else if (!memberEpoch.eq(orgEpoch)) {
           granted = false;
         } else {
@@ -222,17 +231,12 @@ export function registerMemberCommands(parent: Command): void {
         }
 
         printPermCheck({
-          member: memberStr,
-          required,
-          actual: cachedBN,
-          isActive: data.isActive,
-          memberEpoch,
-          orgEpoch,
-          expiresAt: data.expiresAt,
-          granted,
+          member: memberStr, required, actual: cachedBN,
+          isActive: data.isActive, memberEpoch, orgEpoch,
+          expiresAt: data.expiresAt, granted,
         });
       } catch (err: any) {
-        printErr(err.message || err);
+        printErr(err);
       }
     });
 
@@ -241,6 +245,7 @@ export function registerMemberCommands(parent: Command): void {
     .command("refresh <member-pubkey>")
     .description("Refresh cached permissions (permissionless)")
     .action(async (memberStr: string, _opts: any, cmd: Command) => {
+      const spin = new Spinner("Refreshing permissions...").start();
       try {
         const memberKey = validatePubkey(memberStr, "member");
         const g = getGlobalOpts(cmd);
@@ -251,34 +256,23 @@ export function registerMemberCommands(parent: Command): void {
 
         const mData = await (program.account as any).membership.fetch(membershipPda);
         const bitmap = new BN(mData.rolesBitmap);
+        const remainingAccounts = buildRoleAccounts(org.address, bitmap);
 
-        // Build remaining_accounts with all role PDAs for set bits
-        const remainingAccounts: any[] = [];
-        for (let i = 0; i < 64; i++) {
-          if (!bitmap.and(new BN(1).shln(i)).isZero()) {
-            const [rPda] = findRolePda(org.address, i);
-            remainingAccounts.push({
-              pubkey: rPda,
-              isWritable: false,
-              isSigner: false,
-            });
-          }
-        }
-
-        const spin = new Spinner("Refreshing permissions...").start();
-        const sig = await program.methods
+        const builder = program.methods
           .refreshPermissions()
           .accountsPartial({
             payer: provider.wallet.publicKey,
             organization: org.address,
             membership: membershipPda,
           })
-          .remainingAccounts(remainingAccounts)
-          .rpc();
-        spin.succeed("Permissions refreshed");
-        printTx(`Permissions refreshed for ${truncKey(memberKey)}`, sig, g.cluster);
+          .remainingAccounts(remainingAccounts);
+
+        const result = await executeTx({ builder, provider, spinner: spin, label: "refreshPermissions", priorityFee: g.priorityFee });
+        spin.succeed(result.dryRun ? "Dry run — simulation passed" : "Permissions refreshed");
+        printTx(`Permissions refreshed for ${truncKey(memberKey)}`, result.signature, g.cluster);
       } catch (err: any) {
-        printErr(err.message || err);
+        spin.fail();
+        printErr(err);
       }
     });
 
@@ -289,6 +283,7 @@ export function registerMemberCommands(parent: Command): void {
     .option("-e, --expires <timestamp>", "New unix expiry timestamp")
     .option("--remove", "Remove expiry (never expires)")
     .action(async (memberStr: string, opts: any, cmd: Command) => {
+      const spin = new Spinner("Updating expiry...").start();
       try {
         const memberKey = validatePubkey(memberStr, "member");
         const g = getGlobalOpts(cmd);
@@ -302,23 +297,22 @@ export function registerMemberCommands(parent: Command): void {
           newExpiresAt = new BN(opts.expires);
         }
 
-        const spin = new Spinner("Updating expiry...").start();
-        const sig = await program.methods
+        const builder = program.methods
           .updateMembershipExpiry(newExpiresAt)
           .accountsPartial({
             admin: provider.wallet.publicKey,
             organization: org.address,
             membership: membershipPda,
-          })
-          .rpc();
-        spin.succeed("Expiry updated");
+          });
 
-        const action = newExpiresAt
-          ? `set to ${newExpiresAt.toString()}`
-          : "removed";
-        printTx(`Expiry ${action} for ${truncKey(memberKey)}`, sig, g.cluster);
+        const result = await executeTx({ builder, provider, spinner: spin, label: "updateMembershipExpiry", priorityFee: g.priorityFee });
+        spin.succeed(result.dryRun ? "Dry run — simulation passed" : "Expiry updated");
+
+        const action = newExpiresAt ? `set to ${newExpiresAt.toString()}` : "removed";
+        printTx(`Expiry ${action} for ${truncKey(memberKey)}`, result.signature, g.cluster);
       } catch (err: any) {
-        printErr(err.message || err);
+        spin.fail();
+        printErr(err);
       }
     });
 
@@ -328,6 +322,7 @@ export function registerMemberCommands(parent: Command): void {
     .description("Leave the organization (must revoke all roles first)")
     .option("-f, --force", "Skip confirmation")
     .action(async (opts: any, cmd: Command) => {
+      const spin = new Spinner("Leaving organization...").start();
       try {
         const g = getGlobalOpts(cmd);
         const provider = getProvider(g.cluster, g.keypair);
@@ -337,23 +332,26 @@ export function registerMemberCommands(parent: Command): void {
         const [membershipPda] = findMembershipPda(org.address, signer);
 
         if (!opts.force && !g.force) {
+          spin.fail();
           const ok = await confirm("Leave this organization?");
           if (!ok) return printErr("Cancelled.");
+          spin.start();
         }
 
-        const spin = new Spinner("Leaving organization...").start();
-        const sig = await program.methods
+        const builder = program.methods
           .leaveOrganization()
           .accountsPartial({
             member: signer,
             organization: org.address,
             membership: membershipPda,
-          })
-          .rpc();
-        spin.succeed("Left organization");
-        printTx("Left the organization", sig, g.cluster);
+          });
+
+        const result = await executeTx({ builder, provider, spinner: spin, label: "leaveOrganization", priorityFee: g.priorityFee });
+        spin.succeed(result.dryRun ? "Dry run — simulation passed" : "Left organization");
+        printTx("Left the organization", result.signature, g.cluster);
       } catch (err: any) {
-        printErr(err.message || err);
+        spin.fail();
+        printErr(err);
       }
     });
 
@@ -363,6 +361,7 @@ export function registerMemberCommands(parent: Command): void {
     .description("Admin: close a membership (requires roles_bitmap == 0)")
     .option("-f, --force", "Skip confirmation")
     .action(async (memberStr: string, opts: any, cmd: Command) => {
+      const spin = new Spinner("Closing membership...").start();
       try {
         const memberKey = validatePubkey(memberStr, "member");
         const g = getGlobalOpts(cmd);
@@ -372,25 +371,26 @@ export function registerMemberCommands(parent: Command): void {
         const [membershipPda] = findMembershipPda(org.address, memberKey);
 
         if (!opts.force && !g.force) {
-          const ok = await confirm(
-            `Close membership for ${truncKey(memberKey)}? Rent will be reclaimed.`
-          );
+          spin.fail();
+          const ok = await confirm(`Close membership for ${truncKey(memberKey)}? Rent will be reclaimed.`);
           if (!ok) return printErr("Cancelled.");
+          spin.start();
         }
 
-        const spin = new Spinner("Closing membership...").start();
-        const sig = await program.methods
+        const builder = program.methods
           .closeMembership()
           .accountsPartial({
             admin: provider.wallet.publicKey,
             organization: org.address,
             membership: membershipPda,
-          })
-          .rpc();
-        spin.succeed("Membership closed");
-        printTx(`Membership for ${truncKey(memberKey)} closed — rent reclaimed`, sig, g.cluster);
+          });
+
+        const result = await executeTx({ builder, provider, spinner: spin, label: "closeMembership", priorityFee: g.priorityFee });
+        spin.succeed(result.dryRun ? "Dry run — simulation passed" : "Membership closed");
+        printTx(`Membership for ${truncKey(memberKey)} closed — rent reclaimed`, result.signature, g.cluster);
       } catch (err: any) {
-        printErr(err.message || err);
+        spin.fail();
+        printErr(err);
       }
     });
 
@@ -416,13 +416,11 @@ export function registerMemberCommands(parent: Command): void {
         }
 
         if (!g.json) {
-          console.log(
-            `\n  ${T.title("Members")} in '${org.name}' (${members.length} total)`
-          );
+          console.log(`\n  ${T.title("Members")} in '${org.name}' (${members.length} total)`);
         }
         printMemberTable(members);
       } catch (err: any) {
-        printErr(err.message || err);
+        printErr(err);
       }
     });
 }
