@@ -43,6 +43,7 @@ pub struct RolePermissionsUpdated {
     pub old_permissions: u64,
     pub new_permissions: u64,
     pub updated_by: Pubkey,
+    pub new_permissions_epoch: u64,
     pub timestamp: i64,
 }
 
@@ -52,6 +53,7 @@ pub struct RoleDeactivated {
     pub role: Pubkey,
     pub role_index: u8,
     pub deactivated_by: Pubkey,
+    pub new_permissions_epoch: u64,
     pub timestamp: i64,
 }
 
@@ -61,6 +63,7 @@ pub struct RoleReactivated {
     pub role: Pubkey,
     pub role_index: u8,
     pub reactivated_by: Pubkey,
+    pub new_permissions_epoch: u64,
     pub timestamp: i64,
 }
 
@@ -82,7 +85,9 @@ pub struct RoleAssigned {
     pub granted_by: Pubkey,
     pub new_roles_bitmap: u64,
     pub new_cached_permissions: u64,
+    pub new_reference_count: u32,
     pub is_new_membership: bool,
+    pub permissions_epoch: u64,
     pub timestamp: i64,
 }
 
@@ -95,6 +100,8 @@ pub struct RoleRevoked {
     pub revoked_by: Pubkey,
     pub new_roles_bitmap: u64,
     pub new_cached_permissions: u64,
+    pub new_reference_count: u32,
+    pub permissions_epoch: u64,
     pub timestamp: i64,
 }
 
@@ -105,6 +112,7 @@ pub struct PermissionsRefreshed {
     pub member: Pubkey,
     pub old_cached_permissions: u64,
     pub new_cached_permissions: u64,
+    pub synced_epoch: u64,
     pub refreshed_by: Pubkey,
     pub timestamp: i64,
 }

@@ -16,4 +16,7 @@ pub enum VaultError {
 
     #[msg("CPI to RBAC program failed")]
     RbacCpiFailed,
+
+    #[msg("Arithmetic overflow")]
+    ArithmeticOverflow,
 }

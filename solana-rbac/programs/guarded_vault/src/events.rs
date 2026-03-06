@@ -6,6 +6,7 @@ pub struct VaultCreated {
     pub organization: Pubkey,
     pub creator: Pubkey,
     pub label: [u8; 32],
+    pub data_len: u16,
     pub timestamp: i64,
 }
 
@@ -14,7 +15,8 @@ pub struct VaultWritten {
     pub vault: Pubkey,
     pub organization: Pubkey,
     pub writer: Pubkey,
-    pub data_length: u32,
+    pub data_len: u16,
+    pub new_version: u32,
     pub timestamp: i64,
 }
 

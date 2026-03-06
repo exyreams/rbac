@@ -10,6 +10,27 @@ use instructions::*;
 
 declare_id!("EBPengHRgFJB2SLWscZD8yarTXLC6oJ5BdQSjK5V5wDb");
 
+/// # Solana On-Chain RBAC
+///
+/// A complete Role-Based Access Control system implemented as a
+/// Solana program. Designed to be composed with via CPI — any
+/// program can delegate authorization decisions to this program.
+///
+/// ## Architecture
+///
+/// ```text
+/// Organization (tenant)
+///   ├── Role 0..63 (permission sets)
+///   └── Membership (member ↔ roles binding with cached permissions)
+/// ```
+///
+/// ## Key Design Decisions
+///
+/// - **Bitmap permissions**: O(1) checks, 64 roles in 8 bytes
+/// - **Cached permissions**: avoids loading N role accounts per check
+/// - **Permissions epoch**: detects stale caches after role updates
+/// - **Reference counting**: prevents closing roles with active members
+/// - **Delegation guard**: non-admins can only assign roles they hold
 #[program]
 pub mod rbac {
     use super::*;

@@ -1,7 +1,7 @@
 [package]
 name = "guarded-vault"
 version = "0.1.0"
-description = "CPI-guarded vault demonstrating RBAC composability"
+description = "CPI-guarded vault demonstrating RBAC composability."
 edition = "2021"
 
 [lib]

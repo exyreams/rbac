@@ -5,6 +5,10 @@ use crate::errors::RbacError;
 use crate::events::OrganizationClosed;
 use crate::state::Organization;
 
+/// Closes the organization account and reclaims rent.
+///
+/// Requires `role_count == 0` and `member_count == 0`.
+/// All roles and memberships must be closed first.
 pub fn handler(ctx: Context<CloseOrganization>) -> Result<()> {
     let organization = &ctx.accounts.organization;
     let clock = Clock::get()?;

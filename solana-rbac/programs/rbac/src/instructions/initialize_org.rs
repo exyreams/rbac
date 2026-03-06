@@ -5,6 +5,11 @@ use crate::errors::RbacError;
 use crate::events::OrganizationCreated;
 use crate::state::Organization;
 
+/// Creates a new organization.
+///
+/// The signer becomes both `admin` and `creator`. The creator is
+/// immutable and used as a PDA seed, so different wallets can create
+/// organizations with the same name without collision.
 pub fn handler(ctx: Context<InitializeOrg>, name: String) -> Result<()> {
     require!(name.len() <= MAX_NAME_LENGTH, RbacError::NameTooLong);
 
@@ -23,7 +28,8 @@ pub fn handler(ctx: Context<InitializeOrg>, name: String) -> Result<()> {
     organization.member_count = 0;
     organization.created_at = clock.unix_timestamp;
     organization.bump = ctx.bumps.organization;
-    organization.reserved = [0u8; 64];
+    organization.permissions_epoch = 0;
+    organization.reserved = [0u8; 56];
 
     emit!(OrganizationCreated {
         organization: organization.key(),

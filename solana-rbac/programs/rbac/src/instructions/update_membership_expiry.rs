@@ -5,6 +5,10 @@ use crate::errors::RbacError;
 use crate::events::MembershipExpiryUpdated;
 use crate::state::{Membership, Organization};
 
+/// Updates or removes the expiry timestamp on a membership.
+///
+/// Pass `None` to remove expiry (membership never expires).
+/// Pass `Some(timestamp)` to set a future expiry.
 pub fn handler(ctx: Context<UpdateMembershipExpiry>, new_expires_at: Option<i64>) -> Result<()> {
     let clock = Clock::get()?;
 

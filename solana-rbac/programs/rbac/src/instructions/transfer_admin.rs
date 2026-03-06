@@ -5,6 +5,10 @@ use crate::errors::RbacError;
 use crate::events::AdminTransferred;
 use crate::state::Organization;
 
+/// Transfers the admin role to a new wallet.
+///
+/// In production, the admin should be a multisig (e.g., Squads)
+/// rather than a single keypair to reduce single-point-of-failure risk.
 pub fn handler(ctx: Context<TransferAdmin>, new_admin: Pubkey) -> Result<()> {
     require!(new_admin != Pubkey::default(), RbacError::InvalidNewAdmin);
     require!(new_admin != ctx.accounts.admin.key(), RbacError::SameAdmin);

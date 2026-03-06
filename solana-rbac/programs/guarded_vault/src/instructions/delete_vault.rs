@@ -7,6 +7,7 @@ use crate::state::Vault;
 use rbac::constants::PERM_DELETE;
 use rbac::state::{Membership, Organization};
 
+/// Deletes a vault and reclaims rent. Requires DELETE permission.
 pub fn handler(ctx: Context<DeleteVault>) -> Result<()> {
     let cpi_program = ctx.accounts.rbac_program.to_account_info();
     let cpi_accounts = rbac::cpi::accounts::CheckPermission {

@@ -5,19 +5,25 @@ use crate::errors::RbacError;
 use crate::events::RoleCreated;
 use crate::state::{Membership, Organization, Role};
 
+/// Creates a new role with the given name and permission bitmap.
+///
+/// Callable by:
+/// - Organization admin (always)
+/// - Any member with `PERM_CREATE_ROLE` (cannot set `SUPER_ADMIN`)
+///
+/// The role index is auto-assigned from `organization.role_count`.
 pub fn handler(ctx: Context<CreateRole>, name: String, permissions: u64) -> Result<()> {
     require!(name.len() <= MAX_NAME_LENGTH, RbacError::NameTooLong);
 
-    let organization = &mut ctx.accounts.organization;
     let clock = Clock::get()?;
 
-    require!(
-        organization.role_count < MAX_ROLES,
-        RbacError::MaxRolesReached
-    );
+    let org_admin = ctx.accounts.organization.admin;
+    let org_role_count = ctx.accounts.organization.role_count;
+
+    require!(org_role_count < MAX_ROLES, RbacError::MaxRolesReached);
 
     let signer_key = ctx.accounts.authority.key();
-    let is_admin = signer_key == organization.admin;
+    let is_admin = signer_key == org_admin;
 
     if !is_admin {
         let membership = ctx
@@ -49,10 +55,10 @@ pub fn handler(ctx: Context<CreateRole>, name: String, permissions: u64) -> Resu
     let bytes = name.as_bytes();
     name_bytes[..bytes.len()].copy_from_slice(bytes);
 
-    let role_index = organization.role_count;
+    let role_index = org_role_count;
 
     let role = &mut ctx.accounts.role;
-    role.organization = organization.key();
+    role.organization = ctx.accounts.organization.key();
     role.name = name_bytes;
     role.role_index = role_index;
     role.permissions = permissions;
@@ -61,14 +67,14 @@ pub fn handler(ctx: Context<CreateRole>, name: String, permissions: u64) -> Resu
     role.created_at = clock.unix_timestamp;
     role.updated_at = clock.unix_timestamp;
     role.bump = ctx.bumps.role;
+    role.reference_count = 0;
 
-    organization.role_count = organization
-        .role_count
+    ctx.accounts.organization.role_count = org_role_count
         .checked_add(1)
         .ok_or(RbacError::ArithmeticOverflow)?;
 
     emit!(RoleCreated {
-        organization: organization.key(),
+        organization: ctx.accounts.organization.key(),
         role: role.key(),
         role_index,
         name: name_bytes,

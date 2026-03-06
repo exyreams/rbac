@@ -9,10 +9,17 @@ use rbac::state::{Membership, Organization};
 
 pub const VAULT_SEED: &[u8] = b"vault";
 
+/// Creates a new vault. Requires WRITE permission via CPI to RBAC.
+///
+/// This demonstrates the Solana equivalent of:
+/// ```js
+/// app.post('/vaults', requirePermission('WRITE'), (req, res) => { ... });
+/// ```
 pub fn handler(ctx: Context<InitializeVault>, label: String, data: Vec<u8>) -> Result<()> {
     require!(label.len() <= 32, VaultError::LabelTooLong);
     require!(data.len() <= 256, VaultError::DataTooLong);
 
+    // ── CPI permission check ───────────────────────────────────
     let cpi_program = ctx.accounts.rbac_program.to_account_info();
     let cpi_accounts = rbac::cpi::accounts::CheckPermission {
         organization: ctx.accounts.organization.to_account_info(),
@@ -22,6 +29,7 @@ pub fn handler(ctx: Context<InitializeVault>, label: String, data: Vec<u8>) -> R
     rbac::cpi::check_permission(cpi_ctx, PERM_WRITE)
         .map_err(|_| error!(VaultError::PermissionDenied))?;
 
+    // ── Initialize vault ───────────────────────────────────────
     let clock = Clock::get()?;
 
     let mut label_bytes = [0u8; 32];
@@ -35,25 +43,29 @@ pub fn handler(ctx: Context<InitializeVault>, label: String, data: Vec<u8>) -> R
     vault.organization = ctx.accounts.organization.key();
     vault.creator = ctx.accounts.signer.key();
     vault.data = data_bytes;
+    vault.data_len = data.len() as u16;
     vault.label = label_bytes;
     vault.label_len = label_b.len() as u8;
     vault.created_at = clock.unix_timestamp;
     vault.updated_at = clock.unix_timestamp;
     vault.last_modified_by = ctx.accounts.signer.key();
     vault.bump = ctx.bumps.vault;
+    vault.version = 1;
 
     emit!(VaultCreated {
         vault: vault.key(),
         organization: ctx.accounts.organization.key(),
         creator: ctx.accounts.signer.key(),
         label: label_bytes,
+        data_len: data.len() as u16,
         timestamp: clock.unix_timestamp,
     });
 
     msg!(
-        "Vault '{}' created by {} (WRITE permission verified via CPI)",
+        "Vault '{}' created by {} ({} bytes, v1)",
         label,
-        ctx.accounts.signer.key()
+        ctx.accounts.signer.key(),
+        data.len()
     );
 
     Ok(())

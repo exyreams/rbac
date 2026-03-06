@@ -5,11 +5,19 @@ use crate::errors::RbacError;
 use crate::events::RolePermissionsUpdated;
 use crate::state::{Organization, Role};
 
+/// Updates a role's permission bitmap.
+///
+/// Increments `permissions_epoch` on the organization, which
+/// invalidates all membership caches. Members must call
+/// `refresh_permissions` before their next `check_permission`
+/// will succeed.
+///
+/// This is intentional: stale-by-default is safer than
+/// silently granting outdated permissions.
 pub fn handler(ctx: Context<UpdateRolePermissions>, new_permissions: u64) -> Result<()> {
-    let role = &mut ctx.accounts.role;
     let clock = Clock::get()?;
 
-    let old_permissions = role.permissions;
+    let old_permissions = ctx.accounts.role.permissions;
 
     if contains_super_admin(new_permissions) {
         require!(
@@ -18,24 +26,40 @@ pub fn handler(ctx: Context<UpdateRolePermissions>, new_permissions: u64) -> Res
         );
     }
 
+    // Update role
+    let role = &mut ctx.accounts.role;
     role.permissions = new_permissions;
     role.updated_at = clock.unix_timestamp;
 
+    let role_key = role.key();
+    let role_index = role.role_index;
+
+    // Increment epoch — invalidates all membership caches
+    let org = &mut ctx.accounts.organization;
+    org.permissions_epoch = org
+        .permissions_epoch
+        .checked_add(1)
+        .ok_or(RbacError::ArithmeticOverflow)?;
+
+    let new_epoch = org.permissions_epoch;
+
     emit!(RolePermissionsUpdated {
-        organization: ctx.accounts.organization.key(),
-        role: role.key(),
-        role_index: role.role_index,
+        organization: org.key(),
+        role: role_key,
+        role_index,
         old_permissions,
         new_permissions,
         updated_by: ctx.accounts.admin.key(),
+        new_permissions_epoch: new_epoch,
         timestamp: clock.unix_timestamp,
     });
 
     msg!(
-        "Role {} permissions updated: 0x{:016X} → 0x{:016X}. Memberships may need refresh.",
-        role.role_index,
+        "Role {} permissions: 0x{:016X} → 0x{:016X}. Epoch now {}. Memberships need refresh.",
+        role_index,
         old_permissions,
-        new_permissions
+        new_permissions,
+        new_epoch
     );
 
     Ok(())
@@ -47,6 +71,7 @@ pub struct UpdateRolePermissions<'info> {
     pub admin: Signer<'info>,
 
     #[account(
+        mut,
         has_one = admin,
         seeds = [
             ORGANIZATION_SEED,

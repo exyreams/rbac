@@ -7,6 +7,12 @@ use crate::state::Vault;
 use rbac::constants::PERM_READ;
 use rbac::state::{Membership, Organization};
 
+/// Emits a read event for audit purposes. Requires READ permission.
+///
+/// Note: on Solana, account data is always publicly readable via RPC.
+/// This instruction exists to enforce permissioned reads with an
+/// audit trail — the on-chain equivalent of logging access to
+/// sensitive resources.
 pub fn handler(ctx: Context<ReadVault>) -> Result<()> {
     let cpi_program = ctx.accounts.rbac_program.to_account_info();
     let cpi_accounts = rbac::cpi::accounts::CheckPermission {
@@ -28,10 +34,12 @@ pub fn handler(ctx: Context<ReadVault>) -> Result<()> {
     });
 
     msg!(
-        "Vault {} read by {}. Label: {:?}",
+        "Vault {} read by {}. Label: {:?}, {} bytes, v{}",
         vault.key(),
         ctx.accounts.signer.key(),
-        String::from_utf8_lossy(&vault.label).trim_end_matches('\0')
+        String::from_utf8_lossy(&vault.label[..vault.label_len as usize]),
+        vault.data_len,
+        vault.version
     );
 
     Ok(())

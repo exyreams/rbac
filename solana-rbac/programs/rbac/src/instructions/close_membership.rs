@@ -5,6 +5,14 @@ use crate::errors::RbacError;
 use crate::events::MembershipClosed;
 use crate::state::{Membership, Organization};
 
+/// Admin-initiated removal of a membership.
+///
+/// Requires `roles_bitmap == 0` — all roles must be revoked first.
+/// This ensures role `reference_count` values remain consistent.
+///
+/// # Cleanup Workflow
+/// 1. `revoke_role` for each assigned role (decrements reference counts)
+/// 2. `close_membership` (closes account, reclaims rent)
 pub fn handler(ctx: Context<CloseMembership>) -> Result<()> {
     let clock = Clock::get()?;
     let membership = &ctx.accounts.membership;
@@ -12,6 +20,11 @@ pub fn handler(ctx: Context<CloseMembership>) -> Result<()> {
     require!(
         membership.member != ctx.accounts.admin.key(),
         RbacError::CannotSelfRemoveAdmin
+    );
+
+    require!(
+        membership.roles_bitmap == 0,
+        RbacError::MembershipHasActiveRoles
     );
 
     let rent_reclaimed = ctx.accounts.membership.to_account_info().lamports();
@@ -60,6 +73,7 @@ pub struct CloseMembership<'info> {
         mut,
         close = admin,
         constraint = membership.organization == organization.key(),
+        constraint = membership.roles_bitmap == 0 @ RbacError::MembershipHasActiveRoles,
         seeds = [
             MEMBERSHIP_SEED,
             organization.key().as_ref(),

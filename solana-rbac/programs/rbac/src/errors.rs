@@ -58,4 +58,13 @@ pub enum RbacError {
 
     #[msg("New admin is already the current admin")]
     SameAdmin,
+
+    #[msg("Permissions cache is stale — call refresh_permissions first")]
+    StalePermissions,
+
+    #[msg("Cannot assign a role you do not hold yourself")]
+    CannotDelegateUnheldRole,
+
+    #[msg("Revoke all roles before closing membership or leaving")]
+    MembershipHasActiveRoles,
 }
