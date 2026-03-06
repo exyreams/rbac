@@ -650,8 +650,8 @@ No API keys. No registration. No rate limits. No legal agreements. Any program o
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/solana-rbac.git
-cd solana-rbac
+git clone https://github.com/exyreams/rbac.git
+cd rbac
 
 # Install dependencies
 yarn install
