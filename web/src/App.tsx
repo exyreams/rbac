@@ -1,34 +1,44 @@
-import { useState } from "react";
-import viteLogo from "/vite.svg";
-import reactLogo from "./assets/react.svg";
-import "./App.css";
+import { Navigate, Route, Routes } from "react-router-dom";
+import DashboardLayout from "./layouts/DashboardLayout";
+import LandingLayout from "./layouts/LandingLayout";
+import OrgLayout from "./layouts/OrgLayout";
+import AdminDashboard from "./pages/AdminDashboard";
+import PermissionCheckTool from "./pages/PermissionCheckTool";
+import LandingPage from "./pages/LandingPage";
+import MemberManagement from "./pages/organizations/MemberManagement";
+import OrganizationDetail from "./pages/organizations/OrganizationDetail";
+import OrganizationSettings from "./pages/organizations/OrganizationSettings";
+import OrganizationsDashboard from "./pages/organizations/OrganizationsDashboard";
+import RoleManagement from "./pages/organizations/RoleManagement";
+import VaultDemo from "./pages/organizations/VaultDemo";
+import UserProfile from "./pages/UserProfile";
 
 function App() {
-	const [count, setCount] = useState(0);
-
 	return (
-		<>
-			<div>
-				<a href="https://vite.dev" target="_blank">
-					<img src={viteLogo} className="logo" alt="Vite logo" />
-				</a>
-				<a href="https://react.dev" target="_blank">
-					<img src={reactLogo} className="logo react" alt="React logo" />
-				</a>
-			</div>
-			<h1>Vite + React</h1>
-			<div className="card">
-				<button onClick={() => setCount((count) => count + 1)}>
-					count is {count}
-				</button>
-				<p>
-					Edit <code>src/App.tsx</code> and save to test HMR
-				</p>
-			</div>
-			<p className="read-the-docs">
-				Click on the Vite and React logos to learn more
-			</p>
-		</>
+		<Routes>
+			<Route element={<LandingLayout />}>
+				<Route path="/" element={<LandingPage />} />
+			</Route>
+
+			<Route element={<DashboardLayout />}>
+				<Route path="/organizations" element={<OrganizationsDashboard />} />
+
+				<Route path="/org/:id" element={<OrgLayout />}>
+					<Route index element={<OrganizationDetail />} />
+					<Route path="roles" element={<RoleManagement />} />
+					<Route path="members" element={<MemberManagement />} />
+					<Route path="vaults" element={<VaultDemo />} />
+					<Route path="settings" element={<OrganizationSettings />} />
+				</Route>
+
+				<Route path="/profile" element={<UserProfile />} />
+				<Route path="/check" element={<PermissionCheckTool />} />
+				<Route path="/admin" element={<AdminDashboard />} />
+			</Route>
+
+			{/* Catch-all route to redirect back if not found to avoid blank pages during dev */}
+			<Route path="*" element={<Navigate to="/" replace />} />
+		</Routes>
 	);
 }
 

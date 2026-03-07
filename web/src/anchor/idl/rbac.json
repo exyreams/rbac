@@ -1,0 +1,2071 @@
+{
+  "address": "EBPengHRgFJB2SLWscZD8yarTXLC6oJ5BdQSjK5V5wDb",
+  "metadata": {
+    "name": "rbac",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "On-chain Role-Based Access Control system for Solana."
+  },
+  "docs": [
+    "# Solana On-Chain RBAC",
+    "",
+    "A complete Role-Based Access Control system implemented as a",
+    "Solana program. Designed to be composed with via CPI — any",
+    "program can delegate authorization decisions to this program.",
+    "",
+    "## Architecture",
+    "",
+    "```text",
+    "Organization (tenant)",
+    "├── Role 0..63 (permission sets)",
+    "└── Membership (member ↔ roles binding with cached permissions)",
+    "```",
+    "",
+    "## Key Design Decisions",
+    "",
+    "- **Bitmap permissions**: O(1) checks, 64 roles in 8 bytes",
+    "- **Cached permissions**: avoids loading N role accounts per check",
+    "- **Permissions epoch**: detects stale caches after role updates",
+    "- **Reference counting**: prevents closing roles with active members",
+    "- **Delegation guard**: non-admins can only assign roles they hold"
+  ],
+  "instructions": [
+    {
+      "name": "assign_role",
+      "discriminator": [
+        255,
+        174,
+        125,
+        180,
+        203,
+        155,
+        202,
+        131
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority_membership",
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "organization",
+          "writable": true
+        },
+        {
+          "name": "role",
+          "writable": true
+        },
+        {
+          "name": "member",
+          "docs": [
+            "member address produces a valid PDA."
+          ]
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "member"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "role_index",
+          "type": "u8"
+        },
+        {
+          "name": "expires_at",
+          "type": {
+            "option": "i64"
+          }
+        }
+      ]
+    },
+    {
+      "name": "check_permission",
+      "discriminator": [
+        154,
+        199,
+        232,
+        242,
+        96,
+        72,
+        197,
+        236
+      ],
+      "accounts": [
+        {
+          "name": "organization"
+        },
+        {
+          "name": "membership",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "membership.member",
+                "account": "Membership"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "required_permissions",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "close_membership",
+      "discriminator": [
+        75,
+        163,
+        172,
+        3,
+        117,
+        168,
+        222,
+        86
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "organization"
+          ]
+        },
+        {
+          "name": "organization",
+          "writable": true
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "membership.member",
+                "account": "Membership"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_organization",
+      "discriminator": [
+        223,
+        179,
+        142,
+        148,
+        80,
+        216,
+        32,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "organization"
+          ]
+        },
+        {
+          "name": "organization",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_role",
+      "discriminator": [
+        139,
+        108,
+        157,
+        18,
+        175,
+        150,
+        155,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "organization"
+          ]
+        },
+        {
+          "name": "organization",
+          "writable": true
+        },
+        {
+          "name": "role",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_role",
+      "discriminator": [
+        170,
+        147,
+        127,
+        223,
+        222,
+        112,
+        205,
+        163
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority_membership",
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "organization",
+          "writable": true
+        },
+        {
+          "name": "role",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "permissions",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deactivate_role",
+      "discriminator": [
+        162,
+        67,
+        65,
+        17,
+        193,
+        18,
+        206,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "organization"
+          ]
+        },
+        {
+          "name": "organization",
+          "writable": true
+        },
+        {
+          "name": "role",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_organization",
+      "discriminator": [
+        21,
+        20,
+        253,
+        138,
+        250,
+        160,
+        119,
+        87
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "organization",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  103,
+                  97,
+                  110,
+                  105,
+                  122,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin"
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "leave_organization",
+      "discriminator": [
+        46,
+        228,
+        122,
+        79,
+        49,
+        105,
+        53,
+        79
+      ],
+      "accounts": [
+        {
+          "name": "member",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "organization",
+          "writable": true
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "member"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "reactivate_role",
+      "discriminator": [
+        134,
+        26,
+        174,
+        189,
+        131,
+        204,
+        47,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "organization"
+          ]
+        },
+        {
+          "name": "organization",
+          "writable": true
+        },
+        {
+          "name": "role",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "refresh_permissions",
+      "discriminator": [
+        82,
+        17,
+        119,
+        43,
+        192,
+        96,
+        184,
+        4
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "organization"
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "membership.member",
+                "account": "Membership"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "revoke_role",
+      "discriminator": [
+        179,
+        232,
+        2,
+        180,
+        48,
+        227,
+        82,
+        7
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority_membership",
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "organization"
+        },
+        {
+          "name": "role",
+          "docs": [
+            "The specific role being revoked. Mutable to decrement",
+            "its `reference_count`."
+          ],
+          "writable": true
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "membership.member",
+                "account": "Membership"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "role_index",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "transfer_admin",
+      "discriminator": [
+        42,
+        242,
+        66,
+        106,
+        228,
+        10,
+        111,
+        156
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "organization"
+          ]
+        },
+        {
+          "name": "organization",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_admin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "update_membership_expiry",
+      "discriminator": [
+        130,
+        213,
+        143,
+        86,
+        250,
+        213,
+        129,
+        213
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "organization"
+          ]
+        },
+        {
+          "name": "organization"
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organization"
+              },
+              {
+                "kind": "account",
+                "path": "membership.member",
+                "account": "Membership"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_expires_at",
+          "type": {
+            "option": "i64"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_role_permissions",
+      "discriminator": [
+        254,
+        11,
+        60,
+        45,
+        173,
+        224,
+        153,
+        89
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "organization"
+          ]
+        },
+        {
+          "name": "organization",
+          "writable": true
+        },
+        {
+          "name": "role",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_permissions",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Membership",
+      "discriminator": [
+        231,
+        141,
+        180,
+        98,
+        109,
+        168,
+        175,
+        166
+      ]
+    },
+    {
+      "name": "Organization",
+      "discriminator": [
+        145,
+        38,
+        152,
+        251,
+        91,
+        57,
+        118,
+        160
+      ]
+    },
+    {
+      "name": "Role",
+      "discriminator": [
+        46,
+        219,
+        197,
+        24,
+        233,
+        249,
+        253,
+        154
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AdminTransferred",
+      "discriminator": [
+        255,
+        147,
+        182,
+        5,
+        199,
+        217,
+        38,
+        179
+      ]
+    },
+    {
+      "name": "MemberLeft",
+      "discriminator": [
+        48,
+        83,
+        72,
+        92,
+        111,
+        227,
+        133,
+        142
+      ]
+    },
+    {
+      "name": "MembershipClosed",
+      "discriminator": [
+        163,
+        38,
+        35,
+        215,
+        93,
+        174,
+        246,
+        10
+      ]
+    },
+    {
+      "name": "MembershipExpiryUpdated",
+      "discriminator": [
+        41,
+        33,
+        184,
+        15,
+        143,
+        33,
+        236,
+        134
+      ]
+    },
+    {
+      "name": "OrganizationClosed",
+      "discriminator": [
+        164,
+        185,
+        225,
+        9,
+        55,
+        173,
+        239,
+        244
+      ]
+    },
+    {
+      "name": "OrganizationCreated",
+      "discriminator": [
+        50,
+        45,
+        35,
+        29,
+        215,
+        59,
+        22,
+        185
+      ]
+    },
+    {
+      "name": "PermissionCheckPerformed",
+      "discriminator": [
+        105,
+        198,
+        99,
+        230,
+        157,
+        75,
+        234,
+        100
+      ]
+    },
+    {
+      "name": "PermissionsRefreshed",
+      "discriminator": [
+        54,
+        183,
+        251,
+        135,
+        89,
+        118,
+        238,
+        206
+      ]
+    },
+    {
+      "name": "RoleAssigned",
+      "discriminator": [
+        15,
+        207,
+        225,
+        171,
+        169,
+        117,
+        98,
+        131
+      ]
+    },
+    {
+      "name": "RoleClosed",
+      "discriminator": [
+        104,
+        151,
+        154,
+        97,
+        124,
+        28,
+        148,
+        108
+      ]
+    },
+    {
+      "name": "RoleCreated",
+      "discriminator": [
+        203,
+        8,
+        94,
+        252,
+        142,
+        13,
+        51,
+        221
+      ]
+    },
+    {
+      "name": "RoleDeactivated",
+      "discriminator": [
+        188,
+        98,
+        128,
+        233,
+        150,
+        14,
+        206,
+        86
+      ]
+    },
+    {
+      "name": "RolePermissionsUpdated",
+      "discriminator": [
+        163,
+        54,
+        38,
+        219,
+        173,
+        163,
+        181,
+        233
+      ]
+    },
+    {
+      "name": "RoleReactivated",
+      "discriminator": [
+        9,
+        120,
+        96,
+        16,
+        13,
+        24,
+        250,
+        208
+      ]
+    },
+    {
+      "name": "RoleRevoked",
+      "discriminator": [
+        167,
+        183,
+        52,
+        229,
+        126,
+        206,
+        62,
+        61
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NameTooLong",
+      "msg": "Name exceeds the maximum length of 32 bytes"
+    },
+    {
+      "code": 6001,
+      "name": "MaxRolesReached",
+      "msg": "Organization has reached the maximum role capacity of 64"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidRoleIndex",
+      "msg": "Role index is out of valid bounds"
+    },
+    {
+      "code": 6003,
+      "name": "RoleInactive",
+      "msg": "Role is currently deactivated"
+    },
+    {
+      "code": 6004,
+      "name": "MembershipExpired",
+      "msg": "Membership has expired"
+    },
+    {
+      "code": 6005,
+      "name": "MembershipInactive",
+      "msg": "Membership is not active"
+    },
+    {
+      "code": 6006,
+      "name": "InsufficientPermissions",
+      "msg": "Insufficient permissions for this operation"
+    },
+    {
+      "code": 6007,
+      "name": "SuperAdminRestricted",
+      "msg": "Only the organization admin can grant SUPER_ADMIN permissions"
+    },
+    {
+      "code": 6008,
+      "name": "OrganizationNotEmpty",
+      "msg": "Cannot close organization with existing members or roles"
+    },
+    {
+      "code": 6009,
+      "name": "RoleHasMembers",
+      "msg": "Cannot close role while memberships still reference it"
+    },
+    {
+      "code": 6010,
+      "name": "RoleAlreadyAssigned",
+      "msg": "This role is already assigned to the member"
+    },
+    {
+      "code": 6011,
+      "name": "RoleNotAssigned",
+      "msg": "Member does not currently hold this role"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidRefreshAccounts",
+      "msg": "Invalid remaining accounts provided for permission refresh"
+    },
+    {
+      "code": 6013,
+      "name": "CannotSelfRemoveAdmin",
+      "msg": "Admin cannot remove themselves — transfer admin first"
+    },
+    {
+      "code": 6014,
+      "name": "ExpiryInPast",
+      "msg": "Expiry timestamp must be in the future"
+    },
+    {
+      "code": 6015,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow in permission computation"
+    },
+    {
+      "code": 6016,
+      "name": "Unauthorized",
+      "msg": "Unauthorized: signer is neither admin nor authorized member"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidNewAdmin",
+      "msg": "Cannot transfer admin to the zero address"
+    },
+    {
+      "code": 6018,
+      "name": "SameAdmin",
+      "msg": "New admin is already the current admin"
+    },
+    {
+      "code": 6019,
+      "name": "StalePermissions",
+      "msg": "Permissions cache is stale — call refresh_permissions first"
+    },
+    {
+      "code": 6020,
+      "name": "CannotDelegateUnheldRole",
+      "msg": "Cannot assign a role you do not hold yourself"
+    },
+    {
+      "code": 6021,
+      "name": "MembershipHasActiveRoles",
+      "msg": "Revoke all roles before closing membership or leaving"
+    }
+  ],
+  "types": [
+    {
+      "name": "AdminTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "previous_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MemberLeft",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "roles_bitmap_at_departure",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Membership",
+      "docs": [
+        "Links a member to an organization with one or more roles.",
+        "",
+        "This is the Solana equivalent of a `user_roles` JOIN table, but with",
+        "a critical optimization: all permission data is cached directly in",
+        "this account, eliminating the need for JOINs at check time.",
+        "",
+        "# Permission Caching",
+        "",
+        "Web2 permission check:",
+        "```sql",
+        "SELECT 1 FROM permissions p",
+        "JOIN role_permissions rp ON p.id = rp.permission_id",
+        "JOIN user_roles ur ON rp.role_id = ur.role_id",
+        "WHERE ur.user_id = ? AND p.name = 'WRITE'",
+        "```",
+        "",
+        "On-chain check: `(cached_permissions & PERM_WRITE) == PERM_WRITE`",
+        "",
+        "One account read, one bitwise AND. No JOINs, no queries.",
+        "",
+        "# Cache Staleness",
+        "When a role's permissions change, `permissions_epoch` falls behind",
+        "the organization's epoch. `check_permission` detects this and",
+        "rejects the check until `refresh_permissions` is called — the",
+        "on-chain version of Redis cache invalidation.",
+        "",
+        "# PDA Seeds",
+        "`[\"membership\", organization_pubkey, member_pubkey]`",
+        "",
+        "Guarantees one membership per member per organization."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "docs": [
+              "Parent organization."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "docs": [
+              "The member's wallet address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "roles_bitmap",
+            "docs": [
+              "Bitmap of assigned role indices. Bit N set means role N is held."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "cached_permissions",
+            "docs": [
+              "OR of all assigned roles' permission bitmaps.",
+              "Refreshed via `refresh_permissions` when stale."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "granted_by",
+            "docs": [
+              "Last authority who modified this membership."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "last_updated",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "Optional expiration. Checked during `check_permission`."
+            ],
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "is_active",
+            "docs": [
+              "Whether this membership is active. Set to false when",
+              "all roles are revoked."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "permissions_epoch",
+            "docs": [
+              "Must match `Organization.permissions_epoch` for",
+              "`check_permission` to succeed."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MembershipClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "closed_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "roles_bitmap_at_closure",
+            "type": "u64"
+          },
+          {
+            "name": "rent_reclaimed",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MembershipExpiryUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "membership",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_expires_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "new_expires_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "updated_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Organization",
+      "docs": [
+        "Top-level entity in the RBAC hierarchy.",
+        "",
+        "Maps to a \"tenant\" or \"workspace\" in Web2 systems. Each organization",
+        "has an isolated set of roles and memberships, similar to how a SaaS",
+        "app partitions data per customer.",
+        "",
+        "# PDA Seeds",
+        "`[\"organization\", creator_pubkey, name_bytes]`",
+        "",
+        "Two different creators can both have an org named \"default\" because",
+        "the creator pubkey is part of the seed.",
+        "",
+        "# Lifecycle",
+        "`initialize_org` → manage roles/members → `close_organization`",
+        "",
+        "Closing requires `role_count == 0` and `member_count == 0` to",
+        "prevent orphaned state.",
+        "",
+        "# Permissions Epoch",
+        "Incremented whenever any role's permissions change (update,",
+        "deactivate, reactivate). Memberships cache this value; if",
+        "they fall behind, `check_permission` rejects them until",
+        "`refresh_permissions` is called — the on-chain equivalent of",
+        "cache invalidation in Redis."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "docs": [
+              "Current administrator. Transferable via `transfer_admin`."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "Original creator (immutable). Used as PDA seed for namespacing."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "docs": [
+              "UTF-8 name, null-padded to 32 bytes."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "name_len",
+            "docs": [
+              "Actual byte length of the name."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "role_count",
+            "docs": [
+              "Number of roles created. Also serves as the next `role_index`."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "member_count",
+            "docs": [
+              "Number of active membership accounts."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "Unix timestamp of creation."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "permissions_epoch",
+            "docs": [
+              "Monotonic counter incremented on any role permission change.",
+              "Memberships must match this to pass `check_permission`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reserved",
+            "docs": [
+              "Reserved for future fields without account reallocation."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                56
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrganizationClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_reclaimed",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrganizationCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PermissionCheckPerformed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "required_permissions",
+            "type": "u64"
+          },
+          {
+            "name": "actual_permissions",
+            "type": "u64"
+          },
+          {
+            "name": "granted",
+            "type": "bool"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PermissionsRefreshed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "membership",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_cached_permissions",
+            "type": "u64"
+          },
+          {
+            "name": "new_cached_permissions",
+            "type": "u64"
+          },
+          {
+            "name": "synced_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "refreshed_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Role",
+      "docs": [
+        "Defines a named permission set within an organization.",
+        "",
+        "Equivalent to a role row in a Web2 `roles` table, but with permissions",
+        "encoded as a 64-bit bitmap rather than a JOIN table.",
+        "",
+        "# PDA Seeds",
+        "`[\"role\", organization_pubkey, role_index]`",
+        "",
+        "# Reference Counting",
+        "`reference_count` tracks how many memberships currently hold this role.",
+        "The role cannot be closed until all memberships revoke it",
+        "(`reference_count == 0`), preventing dangling bitmap references.",
+        "",
+        "# Active/Inactive",
+        "Deactivated roles stop contributing permissions on the next",
+        "`refresh_permissions` call, but existing caches remain until refreshed.",
+        "The organization's `permissions_epoch` is incremented on state change",
+        "to force a refresh."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "docs": [
+              "Parent organization."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "docs": [
+              "UTF-8 name, null-padded."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "role_index",
+            "docs": [
+              "Position in the organization's role list and the corresponding",
+              "bit position in `Membership.roles_bitmap`."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "permissions",
+            "docs": [
+              "Bitmap of granted permissions. OR'd into the membership cache",
+              "when this role is assigned."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "docs": [
+              "Whether this role is currently active. Inactive roles are excluded",
+              "from permission calculations during `refresh_permissions`."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "created_by",
+            "docs": [
+              "Who created this role."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "reference_count",
+            "docs": [
+              "Number of memberships currently holding this role.",
+              "Incremented on `assign_role`, decremented on `revoke_role`."
+            ],
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleAssigned",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "membership",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "role_index",
+            "type": "u8"
+          },
+          {
+            "name": "granted_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_roles_bitmap",
+            "type": "u64"
+          },
+          {
+            "name": "new_cached_permissions",
+            "type": "u64"
+          },
+          {
+            "name": "new_reference_count",
+            "type": "u32"
+          },
+          {
+            "name": "is_new_membership",
+            "type": "bool"
+          },
+          {
+            "name": "permissions_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "role_index",
+            "type": "u8"
+          },
+          {
+            "name": "closed_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_reclaimed",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": "pubkey"
+          },
+          {
+            "name": "role_index",
+            "type": "u8"
+          },
+          {
+            "name": "name",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "permissions",
+            "type": "u64"
+          },
+          {
+            "name": "created_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleDeactivated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": "pubkey"
+          },
+          {
+            "name": "role_index",
+            "type": "u8"
+          },
+          {
+            "name": "deactivated_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_permissions_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RolePermissionsUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": "pubkey"
+          },
+          {
+            "name": "role_index",
+            "type": "u8"
+          },
+          {
+            "name": "old_permissions",
+            "type": "u64"
+          },
+          {
+            "name": "new_permissions",
+            "type": "u64"
+          },
+          {
+            "name": "updated_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_permissions_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleReactivated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": "pubkey"
+          },
+          {
+            "name": "role_index",
+            "type": "u8"
+          },
+          {
+            "name": "reactivated_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_permissions_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleRevoked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organization",
+            "type": "pubkey"
+          },
+          {
+            "name": "membership",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "role_index",
+            "type": "u8"
+          },
+          {
+            "name": "revoked_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_roles_bitmap",
+            "type": "u64"
+          },
+          {
+            "name": "new_cached_permissions",
+            "type": "u64"
+          },
+          {
+            "name": "new_reference_count",
+            "type": "u32"
+          },
+          {
+            "name": "permissions_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}
