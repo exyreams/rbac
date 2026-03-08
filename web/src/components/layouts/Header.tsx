@@ -1,5 +1,5 @@
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Link } from "react-router-dom";
 
 export default function Header() {
@@ -8,7 +8,10 @@ export default function Header() {
 	return (
 		<nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b-0 border-white/5">
 			<div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-				<Link to="/" className="flex items-center gap-2 no-underline group cursor-pointer">
+				<Link
+					to="/"
+					className="flex items-center gap-2 no-underline group cursor-pointer"
+				>
 					<div className="w-2 h-2 bg-palePeriwinkle rounded-full animate-pulse group-hover:bg-white transition-colors"></div>
 					<span className="font-mono text-sm tracking-widest text-palePeriwinkle font-bold group-hover:text-white transition-colors">
 						SYS.RBAC.v1.0

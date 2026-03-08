@@ -1,7 +1,10 @@
+import { useWallet } from "@solana/wallet-adapter-react";
 import { ArrowRight } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 
 export default function Hero() {
+	const { connected } = useWallet();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const heroRef = useRef<HTMLElement>(null);
 
@@ -270,15 +273,24 @@ export default function Hero() {
 						On-Chain.
 					</h1>
 
-					<p className="text-lg md:text-xl text-white/80 max-w-2xl mt-4 font-normal leading-relaxed fade-in-up delay-200">
+					<p className="text-lg md:text-xl text-white/95 max-w-2xl mt-4 font-normal leading-relaxed fade-in-up delay-200">
 						The standard for Role-Based Access Control in Web3. granular
 						permission management for DAOs, protocols, and on-chain teams.
 					</p>
 
 					<div className="flex flex-col sm:flex-row gap-4 mt-4 fade-in-up delay-300">
-						<button className="px-8 py-4 bg-pearlWhite text-deepIndigo rounded-full font-medium hover:bg-white transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(77,143,255,0.2)]">
-							Connect Wallet
-						</button>
+						{connected ? (
+							<Link
+								to="/admin"
+								className="px-8 py-4 border border-palePeriwinkle/30 text-palePeriwinkle rounded-full font-medium hover:bg-white/5 hover:border-palePeriwinkle transition-all flex items-center justify-center no-underline uppercase tracking-wider bg-transparent"
+							>
+								Launch App
+							</Link>
+						) : (
+							<button className="px-8 py-4 bg-pearlWhite text-deepIndigo rounded-full font-medium hover:bg-white transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(77,143,255,0.2)]">
+								Connect Wallet
+							</button>
+						)}
 						<button className="px-8 py-4 border border-palePeriwinkle/30 text-palePeriwinkle rounded-full font-medium hover:bg-white/5 hover:border-palePeriwinkle transition-all flex items-center gap-2 group bg-transparent cursor-pointer">
 							<span>View Demo</span>
 							<ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -289,7 +301,11 @@ export default function Hero() {
 				<div className="hidden lg:block lg:col-span-4 fade-in-up delay-300">
 					<div
 						className="rounded-xl p-6 font-mono text-xs leading-relaxed text-palePeriwinkle/80 relative overflow-hidden"
-						style={{ backgroundColor: "#050D1A", borderColor: "rgba(77,143,255,0.15)", borderWidth: 1 }}
+						style={{
+							backgroundColor: "#050D1A",
+							borderColor: "rgba(77,143,255,0.15)",
+							borderWidth: 1,
+						}}
 					>
 						<div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-royalBlue to-magentaViolet"></div>
 						<div className="flex gap-2 mb-4 opacity-50">
@@ -320,7 +336,7 @@ export default function Hero() {
 								<span className="text-blue-100">executeProposal</span>() {"{"}
 							</p>
 							<p className="pl-4 text-blue-500/60">
-								// Verifying on-chain permissions...
+								{"//"} Verifying on-chain permissions...
 							</p>
 							<p className="pl-4 text-white/80">
 								<span className="text-blue-400">require</span>(
@@ -341,7 +357,7 @@ export default function Hero() {
 				<span className="font-mono text-[10px] uppercase tracking-widest text-palePeriwinkle">
 					Scroll
 				</span>
-				<div className="w-[1px] h-12 bg-gradient-to-b from-palePeriwinkle to-transparent"></div>
+				<div className="w-px h-12 bg-linear-to-b from-palePeriwinkle to-transparent"></div>
 			</div>
 		</section>
 	);

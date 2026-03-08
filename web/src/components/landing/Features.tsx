@@ -9,7 +9,7 @@ export default function Features() {
 						<h2 className="text-3xl md:text-4xl font-sans mb-4">
 							Core Capabilities
 						</h2>
-						<p className="text-palePeriwinkle/60 max-w-md">
+						<p className="text-palePeriwinkle/90 max-w-md">
 							Enterprise-grade access controls built natively for the blockchain
 							ecosystem.
 						</p>
@@ -20,7 +20,7 @@ export default function Features() {
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-					<div className="glass-card p-8 rounded-2xl flex flex-col gap-6 group">
+					<div className="premium-card p-8 rounded-2xl flex flex-col gap-6 group">
 						<div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
 							<svg
 								className="w-6 h-6 text-palePeriwinkle"
@@ -40,7 +40,7 @@ export default function Features() {
 							<h3 className="text-xl font-medium text-white mb-2">
 								Role-Based Access
 							</h3>
-							<p className="text-sm text-palePeriwinkle/60 leading-relaxed">
+							<p className="text-sm text-palePeriwinkle/90 leading-relaxed">
 								Define and assign roles on-chain with granular precision. Create
 								hierarchies and inheritance structures that mirror your
 								organization.
@@ -56,7 +56,7 @@ export default function Features() {
 						</div>
 					</div>
 
-					<div className="glass-card p-8 rounded-2xl flex flex-col gap-6 group">
+					<div className="premium-card p-8 rounded-2xl flex flex-col gap-6 group">
 						<div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
 							<svg
 								className="w-6 h-6 text-palePeriwinkle"
@@ -76,7 +76,7 @@ export default function Features() {
 							<h3 className="text-xl font-medium text-white mb-2">
 								Permission Trees
 							</h3>
-							<p className="text-sm text-palePeriwinkle/60 leading-relaxed">
+							<p className="text-sm text-palePeriwinkle/90 leading-relaxed">
 								Fine-grained permission management. Allow specific addresses to
 								execute specific functions within your smart contracts.
 							</p>
@@ -91,7 +91,7 @@ export default function Features() {
 						</div>
 					</div>
 
-					<div className="glass-card p-8 rounded-2xl flex flex-col gap-6 group">
+					<div className="premium-card p-8 rounded-2xl flex flex-col gap-6 group">
 						<div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
 							<svg
 								className="w-6 h-6 text-palePeriwinkle"
@@ -111,7 +111,7 @@ export default function Features() {
 							<h3 className="text-xl font-medium text-white mb-2">
 								Immutable Audit
 							</h3>
-							<p className="text-sm text-palePeriwinkle/60 leading-relaxed">
+							<p className="text-sm text-palePeriwinkle/90 leading-relaxed">
 								Every role assignment and permission check is recorded on-chain.
 								Achieve zero-trust security with a complete historical trail.
 							</p>

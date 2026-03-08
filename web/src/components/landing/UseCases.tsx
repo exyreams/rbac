@@ -9,16 +9,16 @@ export default function UseCases() {
 					<h2 className="text-3xl md:text-5xl font-sans text-white mb-6">
 						Built for Web3 Teams
 					</h2>
-					<p className="text-palePeriwinkle/60 max-w-xl mx-auto">
+					<p className="text-palePeriwinkle/90 max-w-xl mx-auto">
 						Scalable infrastructure that adapts to your organization's
 						decentralized needs.
 					</p>
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-					<div className="border border-white/10 bg-deepIndigo/50 rounded-xl p-1 relative overflow-hidden group hover:border-royalBlue/50 transition-all">
+					<div className="premium-card p-1 rounded-xl relative overflow-hidden group">
 						<div className="absolute inset-0 bg-linear-to-br from-royalBlue/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-						<div className="bg-[#050D1A] rounded-lg p-8 h-full relative z-10 flex flex-col items-center text-center">
+						<div className="rounded-lg p-8 h-full relative z-10 flex flex-col items-center text-center">
 							<div className="mb-6 p-4 rounded-full bg-white/5 border border-white/10 text-palePeriwinkle">
 								<svg
 									className="w-8 h-8"
@@ -35,7 +35,7 @@ export default function UseCases() {
 								</svg>
 							</div>
 							<h3 className="text-lg font-medium text-white mb-2">DAOs</h3>
-							<p className="text-sm text-blue-100/40">
+							<p className="text-sm text-blue-100/70">
 								Decentralized governance with tiered voting power and proposal
 								execution rights based on token holdings or delegation.
 							</p>
@@ -43,7 +43,7 @@ export default function UseCases() {
 					</div>
 
 					<div className="border border-white/10 bg-deepIndigo/50 rounded-xl p-1 relative overflow-hidden group hover:border-royalBlue/50 transition-all">
-						<div className="absolute inset-0 bg-gradient-to-br from-royalBlue/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+						<div className="absolute inset-0 bg-linear-to-br from-royalBlue/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 						<div className="bg-[#050D1A] rounded-lg p-8 h-full relative z-10 flex flex-col items-center text-center">
 							<div className="mb-6 p-4 rounded-full bg-white/5 border border-white/10 text-palePeriwinkle">
 								<svg
@@ -63,7 +63,7 @@ export default function UseCases() {
 							<h3 className="text-lg font-medium text-white mb-2">
 								Development Teams
 							</h3>
-							<p className="text-sm text-blue-100/40">
+							<p className="text-sm text-blue-100/70">
 								Manage engineering access tiers. Separate deployer keys from
 								admin keys and automate CI/CD pipeline permissions.
 							</p>
@@ -71,7 +71,7 @@ export default function UseCases() {
 					</div>
 
 					<div className="border border-white/10 bg-deepIndigo/50 rounded-xl p-1 relative overflow-hidden group hover:border-royalBlue/50 transition-all">
-						<div className="absolute inset-0 bg-gradient-to-br from-royalBlue/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+						<div className="absolute inset-0 bg-linear-to-br from-royalBlue/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 						<div className="bg-[#050D1A] rounded-lg p-8 h-full relative z-10 flex flex-col items-center text-center">
 							<div className="mb-6 p-4 rounded-full bg-white/5 border border-white/10 text-palePeriwinkle">
 								<svg
@@ -91,7 +91,7 @@ export default function UseCases() {
 							<h3 className="text-lg font-medium text-white mb-2">
 								Multi-sig Alternative
 							</h3>
-							<p className="text-sm text-blue-100/40">
+							<p className="text-sm text-blue-100/70">
 								Replace cumbersome multi-sig ceremonies with programmable role
 								policies that automatically validate transactions.
 							</p>

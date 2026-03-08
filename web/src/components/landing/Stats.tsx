@@ -7,7 +7,7 @@ export default function Stats() {
 						<span className="font-mono text-2xl md:text-3xl text-white">
 							12,400+
 						</span>
-						<span className="font-mono text-xs uppercase tracking-wider text-lightLavender/60">
+						<span className="font-mono text-xs uppercase tracking-wider text-lightLavender/90">
 							Organizations
 						</span>
 					</div>
@@ -15,7 +15,7 @@ export default function Stats() {
 						<span className="font-mono text-2xl md:text-3xl text-white">
 							340K
 						</span>
-						<span className="font-mono text-xs uppercase tracking-wider text-lightLavender/60">
+						<span className="font-mono text-xs uppercase tracking-wider text-lightLavender/90">
 							Roles Managed
 						</span>
 					</div>
@@ -23,7 +23,7 @@ export default function Stats() {
 						<span className="font-mono text-2xl md:text-3xl text-white">
 							2.1M
 						</span>
-						<span className="font-mono text-xs uppercase tracking-wider text-lightLavender/60">
+						<span className="font-mono text-xs uppercase tracking-wider text-lightLavender/90">
 							Permissions
 						</span>
 					</div>
@@ -31,7 +31,7 @@ export default function Stats() {
 						<span className="font-mono text-2xl md:text-3xl text-white">
 							99.98%
 						</span>
-						<span className="font-mono text-xs uppercase tracking-wider text-lightLavender/60">
+						<span className="font-mono text-xs uppercase tracking-wider text-lightLavender/90">
 							Uptime
 						</span>
 					</div>

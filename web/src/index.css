@@ -74,6 +74,29 @@
 		);
 	}
 
+	.premium-card {
+		background: linear-gradient(
+			180deg,
+			rgba(10, 36, 86, 0.3) 0%,
+			rgba(5, 13, 26, 0.4) 100%
+		);
+		backdrop-filter: blur(12px);
+		border: 1px solid rgba(77, 143, 255, 0.12);
+		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.premium-card:hover {
+		border-color: rgba(77, 143, 255, 0.4);
+		transform: translateY(-4px);
+		background: linear-gradient(
+			180deg,
+			rgba(10, 36, 86, 0.5) 0%,
+			rgba(5, 13, 26, 0.6) 100%
+		);
+		box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5),
+			0 0 20px rgba(77, 143, 255, 0.1);
+	}
+
 	.nav-link {
 		position: relative;
 	}

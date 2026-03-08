@@ -14,7 +14,7 @@ export default function Footer() {
 							</span>
 						</div>
 						<p className="text-sm text-palePeriwinkle/70 leading-relaxed mb-6">
-							The definitive protocol for decentralized identity and role-based 
+							The definitive protocol for decentralized identity and role-based
 							gatekeeping. Engineered for the future of on-chain organizations.
 						</p>
 						<div className="flex gap-4">
@@ -39,22 +39,34 @@ export default function Footer() {
 						</h4>
 						<ul className="space-y-4 text-sm text-blue-100/70">
 							<li>
-								<Link to="/organizations" className="hover:text-white transition-colors">
+								<Link
+									to="/organizations"
+									className="hover:text-white transition-colors"
+								>
 									Dashboard
 								</Link>
 							</li>
 							<li>
-								<Link to="/profile" className="hover:text-white transition-colors">
+								<Link
+									to="/profile"
+									className="hover:text-white transition-colors"
+								>
 									Profile
 								</Link>
 							</li>
 							<li>
-								<Link to="/check" className="hover:text-white transition-colors">
+								<Link
+									to="/check"
+									className="hover:text-white transition-colors"
+								>
 									Check Permission
 								</Link>
 							</li>
 							<li>
-								<Link to="/admin" className="hover:text-white transition-colors">
+								<Link
+									to="/admin"
+									className="hover:text-white transition-colors"
+								>
 									Admin Dashboard
 								</Link>
 							</li>
@@ -109,12 +121,20 @@ export default function Footer() {
 				</div>
 
 				<div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-palePeriwinkle/50 font-mono">
-					<p className="opacity-70">© {new Date().getFullYear()} SYS.RBAC Protocol. All rights reserved.</p>
+					<p className="opacity-70">
+						© {new Date().getFullYear()} SYS.RBAC Protocol. All rights reserved.
+					</p>
 					<div className="flex gap-6">
-						<a href="#" className="text-palePeriwinkle/80 hover:text-white transition-colors no-underline">
+						<a
+							href="#"
+							className="text-palePeriwinkle/80 hover:text-white transition-colors no-underline"
+						>
 							Privacy Policy
 						</a>
-						<a href="#" className="text-palePeriwinkle/80 hover:text-white transition-colors no-underline">
+						<a
+							href="#"
+							className="text-palePeriwinkle/80 hover:text-white transition-colors no-underline"
+						>
 							Terms of Service
 						</a>
 					</div>
