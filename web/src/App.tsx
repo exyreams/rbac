@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import DashboardLayout from "./layouts/DashboardLayout";
-import LandingLayout from "./layouts/LandingLayout";
-import OrgLayout from "./layouts/OrgLayout";
+import DashboardLayout from "./components/layouts/DashboardLayout";
+import LandingLayout from "./components/layouts/LandingLayout";
+import OrgLayout from "./components/layouts/OrgLayout";
 import AdminDashboard from "./pages/AdminDashboard";
 import PermissionCheckTool from "./pages/PermissionCheckTool";
 import LandingPage from "./pages/LandingPage";
