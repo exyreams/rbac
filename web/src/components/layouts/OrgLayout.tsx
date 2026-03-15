@@ -72,13 +72,13 @@ export default function OrgLayout() {
 				</div>
 
 				<div className="flex flex-col lg:flex-row justify-between items-start gap-8">
-					<div className="flex-grow">
+					<div className="grow">
 						<div className="flex items-center gap-4 mb-4">
 							<h1 className="text-4xl font-sans font-bold text-pearlWhite tracking-tight">
 								{orgName}
 							</h1>
-							<span className="px-3 py-1 rounded-full bg-royalBlue/10 border border-royalBlue/30 text-[9px] font-mono text-royalBlue font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(59,130,246,0.1)]">
-								SOLANA MAINNET_BETA
+							<span className="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[9px] font-mono text-cyan-400 font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+								SOLANA DEVNET
 							</span>
 						</div>
 

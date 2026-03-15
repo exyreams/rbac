@@ -113,7 +113,6 @@
 	.stat-card:hover {
 		background: rgba(10, 20, 40, 0.8);
 		border-color: rgba(59, 130, 246, 0.4);
-		transform: scale(1.01);
 	}
 
 	.nav-link {

@@ -1,12 +1,9 @@
 import {
-	ArrowRightLeft,
-	CheckCircle,
-	Info,
 	PlusSquare,
 	UserPlus,
 	Loader2,
-	History,
-	LayoutDashboard,
+	Info,
+	ArrowRightLeft,
 } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
@@ -19,8 +16,6 @@ export default function OrganizationDetail() {
 	const [organization, setOrganization] = useState<any>(null);
 	const [roles, setRoles] = useState<any[]>([]);
 	const [memberships, setMemberships] = useState<any[]>([]);
-	const [activities, setActivities] = useState<any[]>([]);
-	const [activeTab, setActiveTab] = useState<"overview" | "history">("overview");
 	const [isLoading, setIsLoading] = useState(true);
 
 	const orgPubkey = useMemo(() => {
@@ -59,47 +54,6 @@ export default function OrganizationDetail() {
 			setOrganization(orgAccount);
 			setRoles(allRoles.map(r => r.account));
 			setMemberships(allMemberships.map(m => m.account));
-
-			// Mock activities based on on-chain state for now
-			const mockActivities = [
-				{
-					id: "org-1",
-					type: "ORG_CREATED",
-					label: "Organization Created",
-					timestamp: orgAccount.createdAt.toNumber() * 1000,
-					details: `Nexus Labs DAO initialized by ${orgAccount.admin.toBase58().slice(0, 8)}...`,
-					icon: CheckCircle,
-					color: "green",
-				},
-			];
-
-			// Add activity for each role
-			allRoles.forEach((r: any) => {
-				mockActivities.push({
-					id: `role-${r.account.roleIndex}`,
-					type: "ROLE_CREATED",
-					label: "Role Created",
-					timestamp: r.account.createdAt.toNumber() * 1000,
-					details: `New role "${new TextDecoder().decode(Uint8Array.from(r.account.name)).replace(/\0/g, "")}" defined at index ${r.account.roleIndex}`,
-					icon: PlusSquare,
-					color: "magentaViolet",
-				});
-			});
-
-			// Add member join activities
-			allMemberships.forEach((m: any, i: number) => {
-				mockActivities.push({
-					id: `member-${i}`,
-					type: "MEMBER_JOINED",
-					label: "Member Joined",
-					timestamp: m.account.createdAt.toNumber() * 1000,
-					details: `Wallet ${m.account.member.toBase58().slice(0, 8)}... joined the organization`,
-					icon: UserPlus,
-					color: "palePeriwinkle",
-				});
-			});
-
-			setActivities(mockActivities.sort((a, b) => b.timestamp - a.timestamp));
 		} catch (err) {
 			console.error("Error fetching organization detail:", err);
 		} finally {
@@ -121,16 +75,14 @@ export default function OrganizationDetail() {
 
 	if (!organization) {
 		return (
-			<div className="text-center py-20 glass-card rounded-2xl">
-				<p className="text-palePeriwinkle/30 font-mono">ORGANIZATION_NOT_FOUND.ERR</p>
-				<Link to="/dashboard" className="mt-4 inline-block text-palePeriwinkle hover:text-white transition-colors text-xs font-mono">
-					← RETURN_TO_DASHBOARD
+			<div className="text-center py-24 glass-card rounded-2xl">
+				<p className="text-palePeriwinkle/30 font-mono tracking-widest uppercase">ORGANIZATION_NOT_FOUND.ERR</p>
+				<Link to="/dashboard" className="mt-4 inline-block text-royalBlue hover:text-neonGlow transition-colors text-[10px] font-mono font-bold tracking-widest uppercase no-underline">
+					[ RETURN_TO_DASHBOARD ]
 				</Link>
 			</div>
 		);
 	}
-
-	const orgName = new TextDecoder().decode(Uint8Array.from(organization.name)).replace(/\0/g, "");
 
 	return (
 		<>
@@ -164,7 +116,7 @@ export default function OrganizationDetail() {
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-8 fade-in delay-200">
 				<div className="lg:col-span-2 space-y-8">
 					<div className="stat-card rounded-2xl overflow-hidden border border-white/5">
-						<div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+						<div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/2">
 							<h2 className="text-[10px] font-mono font-bold tracking-[0.2em] text-palePeriwinkle/60 uppercase">
 								Active Members ({memberships.length})
 							</h2>
@@ -204,7 +156,7 @@ export default function OrganizationDetail() {
 					</div>
 
 					<div className="stat-card rounded-2xl overflow-hidden border border-white/5">
-						<div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+						<div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/2">
 							<h2 className="text-[10px] font-mono font-bold tracking-[0.2em] text-palePeriwinkle/60 uppercase">
 								Roles Overview ({roles.length})
 							</h2>
