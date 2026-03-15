@@ -4,6 +4,11 @@ import {
 	Loader2,
 	Info,
 	ArrowRightLeft,
+	Copy,
+	ExternalLink,
+	User,
+	Shield,
+	ChevronRight
 } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
@@ -109,7 +114,16 @@ export default function OrganizationDetail() {
 					<div className="text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
 						Admin
 					</div>
-					<div className="text-sm font-mono text-white truncate font-bold">{organization.admin.toBase58().slice(0, 8)}...</div>
+					<div className="flex items-center justify-between gap-2 overflow-hidden">
+						<div className="text-sm font-mono text-white truncate font-bold">{organization.admin.toBase58().slice(0, 8)}...</div>
+						<button 
+							onClick={() => navigator.clipboard.writeText(organization.admin.toBase58())}
+							className="p-1.5 hover:bg-white/10 rounded transition-colors text-palePeriwinkle/40 hover:text-royalBlue shrink-0"
+							title="Copy Admin Address"
+						>
+							<Copy className="w-3 h-3" />
+						</button>
+					</div>
 				</div>
 			</div>
 
@@ -120,33 +134,62 @@ export default function OrganizationDetail() {
 							<h2 className="text-[10px] font-mono font-bold tracking-[0.2em] text-palePeriwinkle/60 uppercase">
 								Active Members ({memberships.length})
 							</h2>
-							<Link to={`/org/${id}/members`} className="text-[10px] font-mono font-bold text-royalBlue hover:text-neonGlow transition-colors uppercase tracking-widest">
-								Manage All →
+							<Link to={`/org/${id}/members`} className="flex items-center gap-1 text-[10px] font-mono font-bold text-royalBlue hover:text-neonGlow transition-colors uppercase tracking-widest group/link">
+								Manage All <ChevronRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
 							</Link>
 						</div>
 						<div className="divide-y divide-white/5">
-							{memberships.slice(0, 5).map((m, i) => (
-								<div key={i} className="px-6 py-5 flex items-center justify-between group hover:bg-white/5 transition-colors">
-									<div className="flex items-center gap-4">
-										<div className="w-8 h-8 rounded bg-palePeriwinkle/10 border border-palePeriwinkle/20 flex items-center justify-center text-palePeriwinkle font-mono text-xs">
-											{i + 1}
+							{memberships.slice(0, 5).map((m, i) => {
+								const memberAddr = m.member.toBase58();
+								const displayAddr = memberAddr.slice(0, 8) + "..." + memberAddr.slice(-8);
+								
+								return (
+									<div key={i} className="px-6 py-5 flex items-center justify-between group hover:bg-white/5 transition-colors">
+										<div className="flex items-center gap-4">
+											<div className="w-10 h-10 rounded-xl bg-royalBlue/10 border border-royalBlue/20 flex items-center justify-center text-royalBlue shadow-inner group-hover:scale-110 transition-transform">
+												<User className="w-5 h-5" />
+											</div>
+											<div>
+												<div className="flex items-center gap-3">
+													<p className="text-sm text-white font-medium font-mono">
+														{displayAddr}
+													</p>
+													<div className="flex items-center gap-1.5">
+														<button 
+															onClick={() => navigator.clipboard.writeText(memberAddr)}
+															className="p-1 hover:bg-white/10 rounded transition-colors text-palePeriwinkle/40 hover:text-royalBlue"
+															title="Copy Address"
+														>
+															<Copy className="w-3 h-3" />
+														</button>
+														<a 
+															href={`https://explorer.solana.com/address/${memberAddr}?cluster=devnet`}
+															target="_blank"
+															rel="noopener noreferrer"
+															className="p-1 hover:bg-white/10 rounded transition-colors text-palePeriwinkle/40 hover:text-royalBlue"
+														>
+															<ExternalLink className="w-3 h-3" />
+														</a>
+													</div>
+												</div>
+												<p className="text-[11px] text-palePeriwinkle/40 font-medium leading-normal max-w-[400px]">
+													{memberAddr === organization.admin.toBase58() 
+														? "Primary organization administrator with root-level authority." 
+														: "Verified identity with active organizational access and role permissions."}
+												</p>
+												<p className="text-[9px] font-mono text-palePeriwinkle/60 uppercase mt-1">
+													JOINED: {new Date(m.createdAt.toNumber() * 1000).toLocaleDateString()}
+												</p>
+											</div>
 										</div>
-										<div>
-											<p className="text-sm text-white font-medium truncate max-w-[200px] font-mono">
-												{m.member.toBase58().slice(0, 12)}...
-											</p>
-											<p className="text-[9px] font-mono text-palePeriwinkle/40 uppercase">
-												JOINED: {new Date(m.createdAt.toNumber() * 1000).toLocaleDateString()}
-											</p>
+										<div className="flex items-center gap-2">
+											<span className={`px-2 py-0.5 rounded border text-[9px] font-mono uppercase tracking-widest ${m.is_active ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+												{m.is_active ? "Active" : "Inactive"}
+											</span>
 										</div>
 									</div>
-									<div className="flex items-center gap-2">
-										<span className={`px-2 py-0.5 rounded border text-[9px] font-mono uppercase tracking-widest ${m.is_active ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-											{m.is_active ? "Active" : "Inactive"}
-										</span>
-									</div>
-								</div>
-							))}
+								);
+							})}
 							{memberships.length === 0 && (
 								<div className="px-6 py-10 text-center">
 									<p className="text-palePeriwinkle/20 font-mono text-xs italic">NO_MEMBERS_FOUND.LOG</p>
@@ -160,20 +203,27 @@ export default function OrganizationDetail() {
 							<h2 className="text-[10px] font-mono font-bold tracking-[0.2em] text-palePeriwinkle/60 uppercase">
 								Roles Overview ({roles.length})
 							</h2>
-							<Link to={`/org/${id}/roles`} className="text-[10px] font-mono font-bold text-royalBlue hover:text-neonGlow transition-colors uppercase tracking-widest">
-								Manage Roles →
+							<Link to={`/org/${id}/roles`} className="flex items-center gap-1 text-[10px] font-mono font-bold text-royalBlue hover:text-neonGlow transition-colors uppercase tracking-widest group/link">
+								Manage Roles <ChevronRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
 							</Link>
 						</div>
 						<div className="divide-y divide-white/5">
 							{roles.map((role, i) => (
 								<div key={i} className="px-6 py-5 flex items-center justify-between group hover:bg-white/5 transition-colors">
 									<div className="flex items-center gap-4">
-										<div className="w-8 h-8 rounded bg-magentaViolet/10 border border-magentaViolet/20 flex items-center justify-center text-magentaViolet font-mono text-xs font-bold">
-											{role.role_index}
+										<div className="w-10 h-10 rounded-xl bg-magentaViolet/10 border border-magentaViolet/20 flex items-center justify-center text-magentaViolet shadow-inner group-hover:scale-110 transition-transform">
+											<Shield className="w-5 h-5" />
 										</div>
 										<div>
 											<p className="text-sm text-white font-bold tracking-tight">
 												{new TextDecoder().decode(Uint8Array.from(role.name)).replace(/\0/g, "")}
+											</p>
+											<p className="text-[11px] text-palePeriwinkle/40 font-medium leading-normal max-w-[300px] mb-1">
+												{role.permissions.toString() === "9223372036854775808" || (BigInt(role.permissions.toString()) & (BigInt(1) << BigInt(63))) !== BigInt(0)
+													? "Full administrative control over organization, roles, and vault protocols."
+													: BigInt(role.permissions.toString()) === BigInt(1)
+														? "Read-only access to organizational data and member directories."
+														: "Custom access tier with specific data and administrative permissions."}
 											</p>
 											<p className="text-[9px] font-mono text-palePeriwinkle/40 uppercase">
 												PERMISSIONS: 0x{role.permissions.toString(16).toUpperCase()}
@@ -206,7 +256,7 @@ export default function OrganizationDetail() {
 									<div className="text-sm font-bold text-white uppercase tracking-tight">
 										Add Member
 									</div>
-									<div className="text-[9px] font-mono text-palePeriwinkle/30 uppercase tracking-widest mt-0.5">
+									<div className="text-[9px] font-mono text-palePeriwinkle/50 uppercase tracking-widest mt-0.5">
 										Assign wallet to role
 									</div>
 								</div>
@@ -220,7 +270,7 @@ export default function OrganizationDetail() {
 									<div className="text-sm font-bold text-white uppercase tracking-tight">
 										Create Role
 									</div>
-									<div className="text-[9px] font-mono text-palePeriwinkle/30 uppercase tracking-widest mt-0.5">
+									<div className="text-[9px] font-mono text-palePeriwinkle/50 uppercase tracking-widest mt-0.5">
 										Define new access tier
 									</div>
 								</div>
@@ -234,7 +284,7 @@ export default function OrganizationDetail() {
 									<div className="text-sm font-bold text-white uppercase tracking-tight">
 										System Settings
 									</div>
-									<div className="text-[9px] font-mono text-palePeriwinkle/30 uppercase tracking-widest mt-0.5">
+									<div className="text-[9px] font-mono text-palePeriwinkle/50 uppercase tracking-widest mt-0.5">
 										Manage core policies
 									</div>
 								</div>
@@ -242,14 +292,14 @@ export default function OrganizationDetail() {
 						</div>
 					</div>
 
-					<div className="stat-card rounded-2xl p-6 border border-dashed border-white/10">
+					<div className="stat-card rounded-2xl p-6 border border-white/5 bg-white/2 shadow-inner">
 						<div className="flex items-center gap-2 mb-4">
-							<Info className="w-4 h-4 text-royalBlue/40" />
-							<span className="text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-[0.2em] font-bold">
+							<Info className="w-4 h-4 text-royalBlue" />
+							<span className="text-[10px] font-mono text-pearlWhite/60 uppercase tracking-[0.2em] font-black">
 								Security Policy
 							</span>
 						</div>
-						<p className="text-[11px] text-palePeriwinkle/40 leading-relaxed font-mono uppercase tracking-tight">
+						<p className="text-[11px] text-palePeriwinkle/60 leading-relaxed font-mono uppercase tracking-tight">
 							Changes to roles or permissions increment the global epoch.
 							Members must refresh their local cache to synchronize state.
 						</p>
