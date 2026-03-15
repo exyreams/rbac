@@ -128,44 +128,51 @@ export default function OrganizationsDashboard() {
 		<>
 			<div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 fade-in">
 				<div>
+					<div className="flex items-center gap-3 text-palePeriwinkle text-xs font-mono mb-2">
+						<span className="uppercase opacity-70">SYSTEM</span>
+						<span className="opacity-30">/</span>
+						<span className="text-pearlWhite uppercase font-bold tracking-widest">
+							Organizations
+						</span>
+					</div>
 					<h1 className="text-3xl font-sans font-medium text-white mb-2">
 						Organizations
 					</h1>
-					<p className="text-palePeriwinkle/50 text-sm font-mono">
-						MANAGE_STRUCTURES.EXE
+					<p className="text-palePeriwinkle/60 text-[10px] font-mono tracking-[0.4em]">
+						MANAGE_STRUCTURES.FXF
 					</p>
 				</div>
 				<button
 					onClick={() => setIsModalOpen(true)}
-					className="px-6 py-3 bg-pearlWhite text-deepIndigo rounded-full font-medium hover:bg-white transition-all transform hover:scale-105 shadow-[0_0_15px_rgba(77,143,255,0.2)] flex items-center gap-2 cursor-pointer border-none"
+					className="px-6 py-3 bg-pearlWhite text-deepIndigo rounded-full font-bold text-xs uppercase tracking-widest hover:bg-white transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(59,130,246,0.3)] flex items-center gap-2 cursor-pointer border-none"
 				>
 					<Plus className="w-4 h-4" />
-					Create New Organization
+					Create_New_Org
 				</button>
 			</div>
 
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 fade-in delay-100">
-				<div className="glass-card rounded-xl p-4 border-l-2 border-l-palePeriwinkle">
-					<div className="text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-palePeriwinkle/50">
+					<div className="text-[10px] font-mono text-lightLavender tracking-widest uppercase mb-1">
 						Total Orgs
 					</div>
-					<div className="text-2xl font-mono text-white">
+					<div className="text-2xl font-mono text-pearlWhite font-bold">
 						{stats.total.toString().padStart(2, "0")}
 					</div>
 				</div>
-				<div className="glass-card rounded-xl p-4 border-l-2 border-l-magentaViolet">
-					<div className="text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-magentaViolet/50">
+					<div className="text-[10px] font-mono text-lightLavender tracking-widest uppercase mb-1">
 						Admin Access
 					</div>
-					<div className="text-2xl font-mono text-white">
+					<div className="text-2xl font-mono text-pearlWhite font-bold">
 						{stats.admin.toString().padStart(2, "0")}
 					</div>
 				</div>
-				<div className="glass-card rounded-xl p-4 border-l-2 border-l-royalBlue">
-					<div className="text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-royalBlue/50">
+					<div className="text-[10px] font-mono text-lightLavender tracking-widest uppercase mb-1">
 						Member Only
 					</div>
-					<div className="text-2xl font-mono text-white">
+					<div className="text-2xl font-mono text-pearlWhite font-bold">
 						{stats.member.toString().padStart(2, "0")}
 					</div>
 				</div>
@@ -194,53 +201,53 @@ export default function OrganizationsDashboard() {
 						filteredOrgs.map((org) => (
 							<div
 								key={org.publicKey.toBase58()}
-								className="glass-card rounded-2xl p-6 flex flex-col group"
+								className="glass-card rounded-2xl p-6 flex flex-col group hover:border-royalBlue/30 hover:bg-white/[0.03]"
 							>
 								<div className="flex justify-between items-start mb-4">
-									<div className="w-10 h-10 rounded-lg bg-royalBlue/30 border border-royalBlue/50 flex items-center justify-center text-palePeriwinkle font-bold">
+									<div className="w-10 h-10 rounded-lg bg-royalBlue/10 border border-royalBlue/20 flex items-center justify-center text-royalBlue font-bold font-mono text-lg">
 										{org.name[0]}
 									</div>
 									<span
-										className={`px-2 py-1 rounded border text-[9px] font-mono uppercase tracking-tighter ${
+										className={`px-2 py-1 rounded border text-[9px] font-mono uppercase tracking-widest ${
 											org.role === "Admin"
-												? "bg-palePeriwinkle/10 border-palePeriwinkle/20 text-palePeriwinkle"
-												: "bg-white/5 border-white/10 text-palePeriwinkle/40"
+												? "bg-royalBlue/10 border-royalBlue/30 text-royalBlue font-bold"
+												: "bg-white/5 border-white/10 text-palePeriwinkle"
 										}`}
 									>
 										{org.role === "Admin" ? "Admin Access" : "Member"}
 									</span>
 								</div>
-								<h3 className="text-lg font-medium text-white mb-1">
+								<h3 className="text-lg font-semibold text-pearlWhite mb-1">
 									{org.name}
 								</h3>
-								<p className="text-xs font-mono text-palePeriwinkle/40 mb-6 truncate">
-									{org.publicKey.toBase58()}
+								<p className="text-[10px] font-mono text-palePeriwinkle/40 mb-6 truncate uppercase tracking-tight">
+									ADDR: {org.publicKey.toBase58()}
 								</p>
 
 								<div className="grid grid-cols-2 gap-4 mb-8">
 									<div>
-										<div className="text-[9px] font-mono text-palePeriwinkle/30 uppercase mb-1">
+										<div className="text-[9px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
 											Members
 										</div>
-										<div className="text-sm text-white">{org.memberCount}</div>
+										<div className="text-sm text-pearlWhite font-mono">{org.memberCount}</div>
 									</div>
 									<div>
-										<div className="text-[9px] font-mono text-palePeriwinkle/30 uppercase mb-1">
+										<div className="text-[9px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
 											Roles
 										</div>
-										<div className="text-sm text-white">{org.roleCount}</div>
+										<div className="text-sm text-pearlWhite font-mono">{org.roleCount}</div>
 									</div>
 								</div>
 
-								<div className="mt-auto flex items-center justify-between">
-									<span className="text-[10px] text-palePeriwinkle/30 font-mono">
+								<div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
+									<span className="text-[9px] text-palePeriwinkle/40 font-mono tracking-wider uppercase">
 										CREATED: {new Date(org.createdAt).toLocaleDateString()}
 									</span>
 									<Link
 										to={`/org/${org.publicKey.toBase58()}`}
-										className="text-xs font-mono text-palePeriwinkle hover:text-white transition-colors flex items-center gap-1 group/btn"
+										className="text-[10px] font-mono font-bold text-royalBlue hover:text-neonGlow transition-colors flex items-center gap-1 uppercase tracking-widest no-underline group/btn"
 									>
-										MANAGE{" "}
+										Manage_System{" "}
 										<span className="group-hover/btn:translate-x-1 transition-transform">
 											→
 										</span>

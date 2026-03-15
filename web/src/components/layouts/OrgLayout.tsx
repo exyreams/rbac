@@ -16,55 +16,57 @@ export default function OrgLayout() {
 	return (
 		<>
 			<div className="mb-10 fade-in">
-				<div className="flex items-center gap-2 text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-4">
+				<div className="flex items-center gap-3 text-palePeriwinkle text-[10px] font-mono mb-4 uppercase tracking-[0.2em]">
 					<Link
 						to="/organizations"
-						className="hover:text-palePeriwinkle/60 transition-colors"
+						className="hover:text-pearlWhite transition-colors opacity-70"
 					>
 						Organizations
 					</Link>
-					<span>/</span>
-					<span className="text-palePeriwinkle/70">Nexus Labs DAO</span>
+					<span className="opacity-30">/</span>
+					<span className="text-pearlWhite font-bold tracking-widest">
+						Nexus Labs DAO
+					</span>
 				</div>
 
 				<div className="flex flex-col lg:flex-row justify-between items-start gap-8">
 					<div className="flex-grow">
 						<div className="flex items-center gap-4 mb-3">
-							<h1 className="text-4xl font-sans font-medium text-white">
+							<h1 className="text-4xl font-sans font-bold text-pearlWhite tracking-tight">
 								Nexus Labs DAO
 							</h1>
-							<span className="px-3 py-1 rounded-full bg-royalBlue/30 border border-royalBlue/50 text-[10px] font-mono text-palePeriwinkle uppercase tracking-wider">
+							<span className="px-3 py-1 rounded-full bg-royalBlue/10 border border-royalBlue/30 text-[9px] font-mono text-royalBlue font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(59,130,246,0.1)]">
 								Ethereum Mainnet
 							</span>
 						</div>
 
-						<div className="flex flex-wrap items-center gap-y-4 gap-x-8 text-sm">
+						<div className="flex flex-wrap items-center gap-y-4 gap-x-8 text-[11px] font-mono">
 							<div className="flex items-center gap-2 group">
-								<span className="text-palePeriwinkle/40 font-mono">ADDR:</span>
-								<span className="text-palePeriwinkle/80 font-mono">
+								<span className="text-palePeriwinkle/40 uppercase tracking-widest">ADDR:</span>
+								<span className="text-palePeriwinkle opacity-80 uppercase tracking-tight">
 									0x4a2c...88f1
 								</span>
-								<button className="text-palePeriwinkle/30 hover:text-white transition-colors cursor-pointer border-none bg-transparent">
-									<Copy className="w-4 h-4" />
+								<button className="text-palePeriwinkle/30 hover:text-pearlWhite transition-colors cursor-pointer border-none bg-transparent">
+									<Copy className="w-3.5 h-3.5" />
 								</button>
 							</div>
 							<div className="flex items-center gap-2">
-								<span className="text-palePeriwinkle/40 font-mono">ADMIN:</span>
-								<span className="text-palePeriwinkle/80 font-mono">
+								<span className="text-palePeriwinkle/40 uppercase tracking-widest">ADMIN:</span>
+								<span className="text-palePeriwinkle opacity-80 uppercase tracking-tight">
 									0x71C...4f92
 								</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<span className="text-palePeriwinkle/40 font-mono">
+								<span className="text-palePeriwinkle/40 uppercase tracking-widest">
 									CREATED:
 								</span>
-								<span className="text-palePeriwinkle/80 font-mono">
+								<span className="text-palePeriwinkle opacity-80 uppercase tracking-tight">
 									12.04.23
 								</span>
 							</div>
 						</div>
 
-						<p className="mt-6 text-palePeriwinkle/50 text-sm leading-relaxed max-w-2xl">
+						<p className="mt-6 text-palePeriwinkle/60 text-sm leading-relaxed max-w-2xl font-light">
 							Primary research and development laboratory for modular
 							infrastructure. This DAO manages the core protocol parameters,
 							treasury allocations, and contributor access control across the
@@ -79,13 +81,16 @@ export default function OrgLayout() {
 					<Link
 						key={tab.name}
 						to={tab.path}
-						className={`pb-4 text-xs font-mono tracking-widest transition-colors cursor-pointer ${
+						className={`pb-4 text-[10px] font-mono font-bold tracking-[0.2em] transition-all cursor-pointer relative ${
 							location.pathname === tab.path
-								? "text-[#F0F4FF] border-b-2 border-[#4D8FFF]"
-								: "text-palePeriwinkle/40 hover:text-white"
+								? "text-pearlWhite"
+								: "text-palePeriwinkle/40 hover:text-pearlWhite"
 						}`}
 					>
 						{tab.name}
+						{location.pathname === tab.path && (
+							<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-royalBlue shadow-[0_0_10px_var(--color-royalBlue)]" />
+						)}
 					</Link>
 				))}
 			</div>

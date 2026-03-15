@@ -135,13 +135,13 @@ export default function OrganizationDetail() {
 	return (
 		<>
 			<div className="mb-10 fade-in">
-				<div className="flex items-center gap-2 text-palePeriwinkle/30 text-[10px] font-mono mb-2">
-					<Link to="/organizations" className="hover:text-palePeriwinkle transition-colors uppercase">Organizations</Link>
-					<span>/</span>
-					<span className="text-palePeriwinkle/60 uppercase">{orgName}</span>
+				<div className="flex items-center gap-3 text-palePeriwinkle text-[10px] font-mono mb-2 uppercase tracking-[0.2em]">
+					<Link to="/organizations" className="hover:text-pearlWhite transition-colors opacity-70">Organizations</Link>
+					<span className="opacity-30">/</span>
+					<span className="text-pearlWhite font-bold tracking-widest">{orgName}</span>
 				</div>
-				<h1 className="text-3xl font-sans font-medium text-white">{orgName}</h1>
-				<p className="text-xs font-mono text-palePeriwinkle/40 mt-1">{id}</p>
+				<h1 className="text-3xl font-sans font-bold text-pearlWhite tracking-tight">{orgName}</h1>
+				<p className="text-[10px] font-mono text-palePeriwinkle/60 mt-2 tracking-widest uppercase">ID: {id}</p>
 			</div>
 
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10 fade-in delay-200">
@@ -174,10 +174,10 @@ export default function OrganizationDetail() {
 			<div className="flex items-center gap-1 p-1 bg-white/5 border border-white/10 rounded-xl w-fit mb-8 fade-in delay-200">
 				<button
 					onClick={() => setActiveTab("overview")}
-					className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono transition-all ${
+					className={`flex items-center gap-2 px-6 py-2 rounded-lg text-[10px] font-mono font-bold tracking-widest transition-all uppercase ${
 						activeTab === "overview"
-							? "bg-palePeriwinkle text-deepIndigo shadow-lg"
-							: "text-palePeriwinkle/40 hover:text-white hover:bg-white/5"
+							? "bg-royalBlue text-white shadow-[0_0_15px_var(--color-royalBlue)]"
+							: "text-palePeriwinkle/40 hover:text-pearlWhite hover:bg-white/5"
 					}`}
 				>
 					<LayoutDashboard className="w-3.5 h-3.5" />
@@ -185,10 +185,10 @@ export default function OrganizationDetail() {
 				</button>
 				<button
 					onClick={() => setActiveTab("history")}
-					className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono transition-all ${
+					className={`flex items-center gap-2 px-6 py-2 rounded-lg text-[10px] font-mono font-bold tracking-widest transition-all uppercase ${
 						activeTab === "history"
-							? "bg-palePeriwinkle text-deepIndigo shadow-lg"
-							: "text-palePeriwinkle/40 hover:text-white hover:bg-white/5"
+							? "bg-royalBlue text-white shadow-[0_0_15px_var(--color-royalBlue)]"
+							: "text-palePeriwinkle/40 hover:text-pearlWhite hover:bg-white/5"
 					}`}
 				>
 					<History className="w-3.5 h-3.5" />

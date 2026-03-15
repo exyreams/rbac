@@ -1,21 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-	--color-deepIndigo: #050d1a;
-	--color-royalBlue: #0a2456;
-	--color-magentaViolet: #4d8fff;
-	--color-lightLavender: #9bb8f5;
-	--color-palePeriwinkle: #4d8fff;
-	--color-pearlWhite: #f0f4ff;
+	--color-deepIndigo: #030812;
+	--color-slateNavy: #0a1428;
+	--color-royalBlue: #3b82f6;
+	--color-magentaViolet: #a855f7;
+	--color-palePeriwinkle: #94a3b8;
+	--color-lightLavender: #cbd5e1;
+	--color-pearlWhite: #f8fafc;
+	--color-neonGlow: #60a5fa;
 
 	--font-mono: "JetBrains Mono", monospace;
 	--font-sans: "Inter", sans-serif;
-
-	--background-image-glass-gradient: linear-gradient(
-		180deg,
-		rgba(255, 255, 255, 0.05) 0%,
-		rgba(255, 255, 255, 0.02) 100%
-	);
 }
 
 @layer base {
@@ -23,6 +19,8 @@
 		background-color: var(--color-deepIndigo);
 		color: var(--color-pearlWhite);
 		overflow-x: hidden;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
 	}
 
 	::selection {
@@ -37,64 +35,85 @@
 		background: var(--color-deepIndigo);
 	}
 	::-webkit-scrollbar-thumb {
-		background: var(--color-royalBlue);
+		background: var(--color-slateNavy);
 		border-radius: 4px;
 	}
 	::-webkit-scrollbar-thumb:hover {
-		background: var(--color-magentaViolet);
+		background: var(--color-royalBlue);
 	}
 }
 
 @layer utilities {
+	/* Standard Glass - used in Dashboard */
 	.glass-panel {
-		background: rgba(5, 13, 26, 0.4);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-		border: 1px solid rgba(77, 143, 255, 0.1);
+		background: rgba(10, 20, 40, 0.7);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid rgba(148, 163, 184, 0.1);
 	}
 
 	.glass-card {
 		background: linear-gradient(
 			180deg,
-			rgba(255, 255, 255, 0.03) 0%,
-			rgba(255, 255, 255, 0) 100%
+			rgba(255, 255, 255, 0.04) 0%,
+			rgba(255, 255, 255, 0.01) 100%
 		);
-		backdrop-filter: blur(8px);
-		border: 1px solid rgba(77, 143, 255, 0.08);
-		transition: all 0.3s ease;
+		backdrop-filter: blur(12px);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	.glass-card:hover {
-		border-color: rgba(77, 143, 255, 0.2);
-		transform: translateY(-2px);
 		background: linear-gradient(
 			180deg,
-			rgba(255, 255, 255, 0.06) 0%,
-			rgba(255, 255, 255, 0.01) 100%
+			rgba(255, 255, 255, 0.07) 0%,
+			rgba(255, 255, 255, 0.02) 100%
 		);
+		border-color: rgba(96, 165, 250, 0.3);
+		transform: translateY(-2px);
+		box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
 	}
 
+	/* Premium Card - used in Landing Page main features */
 	.premium-card {
 		background: linear-gradient(
 			180deg,
-			rgba(10, 36, 86, 0.3) 0%,
-			rgba(5, 13, 26, 0.4) 100%
+			rgba(59, 130, 246, 0.1) 0%,
+			rgba(3, 8, 18, 0.4) 100%
 		);
-		backdrop-filter: blur(12px);
-		border: 1px solid rgba(77, 143, 255, 0.12);
+		backdrop-filter: blur(20px);
+		border: 1px solid rgba(59, 130, 246, 0.15);
 		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	.premium-card:hover {
-		border-color: rgba(77, 143, 255, 0.4);
+		border-color: rgba(168, 85, 247, 0.4);
 		transform: translateY(-4px);
 		background: linear-gradient(
 			180deg,
-			rgba(10, 36, 86, 0.5) 0%,
-			rgba(5, 13, 26, 0.6) 100%
+			rgba(59, 130, 246, 0.15) 0%,
+			rgba(168, 85, 247, 0.1) 100%
 		);
-		box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5),
-			0 0 20px rgba(77, 143, 255, 0.1);
+		box-shadow: 
+			0 20px 40px -15px rgba(0, 0, 0, 0.6),
+			0 0 20px rgba(59, 130, 246, 0.15);
+	}
+
+	/* Stat Card - used for Dashboard Metrics */
+	.stat-card {
+		background: linear-gradient(
+			180deg,
+			rgba(10, 20, 40, 0.5) 0%,
+			rgba(3, 8, 18, 0.8) 100%
+		);
+		border: 1px solid rgba(148, 163, 184, 0.15);
+		transition: all 0.3s ease;
+	}
+
+	.stat-card:hover {
+		background: rgba(10, 20, 40, 0.8);
+		border-color: rgba(59, 130, 246, 0.4);
+		transform: scale(1.01);
 	}
 
 	.nav-link {
@@ -108,7 +127,7 @@
 		left: 0;
 		width: 0%;
 		height: 1px;
-		background-color: var(--color-pale-periwinkle);
+		background-color: var(--color-royalBlue);
 		transition: width 0.3s ease;
 	}
 
@@ -122,15 +141,9 @@
 		transform: translateY(20px);
 	}
 
-	.delay-100 {
-		animation-delay: 0.1s;
-	}
-	.delay-200 {
-		animation-delay: 0.2s;
-	}
-	.delay-300 {
-		animation-delay: 0.3s;
-	}
+	.delay-100 { animation-delay: 0.1s; }
+	.delay-200 { animation-delay: 0.2s; }
+	.delay-300 { animation-delay: 0.3s; }
 }
 
 @keyframes fadeInUp {
