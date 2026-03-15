@@ -18,16 +18,10 @@ export default function DashboardLayout() {
 
 					<div className="hidden md:flex items-center gap-8 font-mono text-xs tracking-wider text-palePeriwinkle">
 						<Link
-							to="/admin"
+							to="/dashboard"
 							className="nav-link hover:text-white transition-colors"
 						>
 							DASHBOARD
-						</Link>
-						<Link
-							to="/organizations"
-							className="nav-link hover:text-white transition-colors"
-						>
-							ORGANIZATIONS
 						</Link>
 						<Link
 							to="/check"

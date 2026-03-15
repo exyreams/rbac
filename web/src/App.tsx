@@ -2,13 +2,12 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import LandingLayout from "./components/layouts/LandingLayout";
 import OrgLayout from "./components/layouts/OrgLayout";
-import AdminDashboard from "./pages/AdminDashboard";
+import Dashboard from "./pages/Dashboard";
 import PermissionCheckTool from "./pages/PermissionCheckTool";
 import LandingPage from "./pages/LandingPage";
 import MemberManagement from "./pages/organizations/MemberManagement";
 import OrganizationDetail from "./pages/organizations/OrganizationDetail";
 import OrganizationSettings from "./pages/organizations/OrganizationSettings";
-import OrganizationsDashboard from "./pages/organizations/OrganizationsDashboard";
 import RoleManagement from "./pages/organizations/RoleManagement";
 import VaultDemo from "./pages/organizations/VaultDemo";
 import UserProfile from "./pages/UserProfile";
@@ -21,7 +20,9 @@ function App() {
 			</Route>
 
 			<Route element={<DashboardLayout />}>
-				<Route path="/organizations" element={<OrganizationsDashboard />} />
+				<Route path="/dashboard" element={<Dashboard />} />
+				<Route path="/organizations" element={<Navigate to="/dashboard" replace />} />
+				<Route path="/admin" element={<Navigate to="/dashboard" replace />} />
 
 				<Route path="/org/:id" element={<OrgLayout />}>
 					<Route index element={<OrganizationDetail />} />
@@ -33,11 +34,10 @@ function App() {
 
 				<Route path="/profile" element={<UserProfile />} />
 				<Route path="/check" element={<PermissionCheckTool />} />
-				<Route path="/admin" element={<AdminDashboard />} />
 			</Route>
 
 			{/* Catch-all route to redirect back if not found to avoid blank pages during dev */}
-			<Route path="*" element={<Navigate to="/" replace />} />
+			<Route path="*" element={<Navigate to="/dashboard" replace />} />
 		</Routes>
 	);
 }
