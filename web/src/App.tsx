@@ -7,6 +7,7 @@ import PermissionCheckTool from "./pages/PermissionCheckTool";
 import LandingPage from "./pages/LandingPage";
 import MemberManagement from "./pages/organizations/MemberManagement";
 import OrganizationDetail from "./pages/organizations/OrganizationDetail";
+import OrganizationHistory from "./pages/organizations/OrganizationHistory";
 import OrganizationSettings from "./pages/organizations/OrganizationSettings";
 import RoleManagement from "./pages/organizations/RoleManagement";
 import VaultDemo from "./pages/organizations/VaultDemo";
@@ -26,6 +27,7 @@ function App() {
 
 				<Route path="/org/:id" element={<OrgLayout />}>
 					<Route index element={<OrganizationDetail />} />
+					<Route path="history" element={<OrganizationHistory />} />
 					<Route path="roles" element={<RoleManagement />} />
 					<Route path="members" element={<MemberManagement />} />
 					<Route path="vaults" element={<VaultDemo />} />
