@@ -1,4 +1,4 @@
-import { X, Loader2, UserPlus } from "lucide-react";
+import { X, Loader2, UserPlus, Shield, ChevronDown, Search, Calendar } from "lucide-react";
 import { useState } from "react";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { useAnchorProgram } from "../../hooks/useAnchorProgram";
@@ -25,8 +25,21 @@ export function AssignRoleModal({
   const [memberAddress, setMemberAddress] = useState("");
   const [selectedRoleIndex, setSelectedRoleIndex] = useState<number>(0);
   const [expiryDate, setExpiryDate] = useState<string>("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [roleSearchTerm, setRoleSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const filteredRoles = roles.filter(role => 
+    new TextDecoder().decode(Uint8Array.from(role.account.name))
+      .toLowerCase()
+      .includes(roleSearchTerm.toLowerCase())
+  );
+
+  const selectedRole = roles.find(r => r.account.roleIndex === selectedRoleIndex);
+  const selectedRoleName = selectedRole 
+    ? new TextDecoder().decode(Uint8Array.from(selectedRole.account.name)).replace(/\0/g, "")
+    : "Select Authority Level";
 
   if (!isOpen) return null;
 
@@ -99,16 +112,19 @@ export function AssignRoleModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="glass-panel border border-white/10 w-full max-w-md rounded-3xl overflow-hidden fade-in animate-scale-up">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-royalBlue/10 flex items-center justify-center">
-              <UserPlus className="w-4 h-4 text-royalBlue" />
+        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/2">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-royalBlue/10 border border-royalBlue/20 flex items-center justify-center shadow-lg">
+              <UserPlus className="w-6 h-6 text-royalBlue" />
             </div>
-            <h3 className="text-lg font-medium text-white">Assign Role</h3>
+            <div>
+              <h3 className="text-lg font-bold text-white uppercase tracking-tight">Assign Authority</h3>
+              <p className="text-[10px] text-palePeriwinkle/60 font-mono uppercase tracking-[0.2em] mt-1">Deploy on-chain permission node</p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-palePeriwinkle/40 hover:text-white cursor-pointer bg-transparent border-none"
+            className="p-2 text-palePeriwinkle/40 hover:text-white hover:bg-white/5 rounded-xl transition-all cursor-pointer bg-transparent border-none"
           >
             <X className="w-5 h-5" />
           </button>
@@ -128,42 +144,90 @@ export function AssignRoleModal({
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-2">
-              Select Role
+          <div className="relative">
+            <label className="block text-[10px] font-mono text-palePeriwinkle/60 uppercase tracking-[0.2em] mb-4">
+              Authority Tier
             </label>
-            <select
-              value={selectedRoleIndex}
-              onChange={(e) => setSelectedRoleIndex(parseInt(e.target.value))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 text-sm text-white focus:outline-none focus:border-royalBlue/40 transition-colors"
+            <div 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-5 text-sm text-white flex items-center justify-between cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all group"
             >
-              {roles.map((role) => (
-                <option
-                  key={role.account.roleIndex}
-                  value={role.account.roleIndex}
-                  className="bg-deepIndigo"
-                >
-                  {new TextDecoder()
-                    .decode(Uint8Array.from(role.account.name))
-                    .replace(/\0/g, "")}{" "}
-                  (Index: {role.account.roleIndex})
-                </option>
-              ))}
-            </select>
+              <div className="flex items-center gap-3">
+                <Shield className="w-4 h-4 text-royalBlue" />
+                <span className="font-bold tracking-widest uppercase text-xs">{selectedRoleName}</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-palePeriwinkle/30 group-hover:text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </div>
+
+            {isDropdownOpen && (
+              <div className="absolute z-50 w-full mt-2 bg-[#0A0D14] border border-white/10 rounded-2xl shadow-2xl overflow-hidden fade-in animate-scale-up backdrop-blur-xl">
+                <div className="p-3 border-b border-white/5 bg-white/2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-palePeriwinkle/30" />
+                    <input 
+                      type="text"
+                      autoFocus
+                      placeholder="Search Tiers..."
+                      value={roleSearchTerm}
+                      onChange={(e) => setRoleSearchTerm(e.target.value)}
+                      className="w-full bg-white/5 border border-white/5 rounded-xl py-2 pl-9 pr-3 text-[10px] font-mono text-white focus:outline-none focus:border-royalBlue/30 transition-all placeholder:text-palePeriwinkle/20"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
+                <div className="max-h-[200px] overflow-y-auto custom-scrollbar p-2">
+                  {filteredRoles.map((role) => {
+                    const name = new TextDecoder().decode(Uint8Array.from(role.account.name)).replace(/\0/g, "");
+                    const isSelected = selectedRoleIndex === role.account.roleIndex;
+                    return (
+                      <div
+                        key={role.account.roleIndex}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedRoleIndex(role.account.roleIndex);
+                          setIsDropdownOpen(false);
+                          setRoleSearchTerm("");
+                        }}
+                        className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${isSelected ? 'bg-royalBlue/20 border border-royalBlue/20' : 'hover:bg-white/5 border border-transparent'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-1.5 rounded-lg border transition-colors ${isSelected ? 'bg-royalBlue/20 border-royalBlue/30' : 'bg-white/5 border-white/10 group-hover:border-royalBlue/20'}`}>
+                            <Shield className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-royalBlue'}`} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-white uppercase tracking-tight">{name}</p>
+                            <p className="text-[8px] font-mono text-palePeriwinkle/40 mt-1 uppercase">SLOT {role.account.roleIndex.toString().padStart(2, '0')}</p>
+                          </div>
+                        </div>
+                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-royalBlue shadow-[0_0_8px_rgba(77,143,255,0.8)]" />}
+                      </div>
+                    );
+                  })}
+                  {filteredRoles.length === 0 && (
+                    <div className="p-8 text-center">
+                      <p className="text-[10px] font-mono text-palePeriwinkle/20 uppercase italic">No matches found</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
-            <label className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-2">
-              Expiry Date (Optional)
+            <label className="block text-[10px] font-mono text-palePeriwinkle/60 uppercase tracking-[0.2em] mb-4">
+              Authority Lifespan
             </label>
-            <input
-              type="date"
-              value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 text-sm font-mono text-white focus:outline-none focus:border-royalBlue/40 transition-colors placeholder:text-white/10"
-            />
-            <p className="mt-2 text-[9px] font-mono text-palePeriwinkle/20 uppercase tracking-tighter italic">
-              Leave blank for permanent membership
+            <div className="relative group">
+              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-palePeriwinkle/20 group-hover:text-royalBlue transition-colors" />
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-5 text-sm font-mono text-white focus:outline-none focus:border-royalBlue/40 transition-all placeholder:text-white/10"
+              />
+            </div>
+            <p className="mt-3 text-[9px] font-mono text-palePeriwinkle/30 uppercase tracking-widest italic">
+              Leave empty for permanent authority
             </p>
           </div>
 
@@ -176,19 +240,22 @@ export function AssignRoleModal({
           <div className="flex gap-4 pt-4">
             <button
               onClick={onClose}
-              className="flex-1 py-3 border border-white/10 rounded-full text-sm font-medium text-palePeriwinkle hover:bg-white/5 transition-colors cursor-pointer bg-transparent"
+              className="flex-1 py-4 bg-white/2 border border-white/5 rounded-2xl text-[10px] font-mono font-bold text-palePeriwinkle/60 uppercase tracking-widest hover:bg-white/5 transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleAssign}
               disabled={isLoading || !memberAddress}
-              className="flex-1 py-3 bg-royalBlue text-white rounded-full font-medium hover:bg-royalBlue/80 transition-all shadow-[0_0_20px_rgba(77,143,255,0.2)] flex items-center justify-center gap-2 cursor-pointer border-none"
+              className="flex-1 py-4 bg-white text-deepIndigo rounded-2xl text-[10px] font-mono font-black uppercase tracking-widest hover:bg-pearlWhite transition-all shadow-xl flex items-center justify-center gap-2 border-none cursor-pointer disabled:opacity-50"
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "Assign Role"
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  Assign Tier
+                </>
               )}
             </button>
           </div>
