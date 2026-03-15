@@ -1,15 +1,16 @@
 import {
   Loader2,
   Eye,
-  PenTool,
-  ShieldAlert,
   Plus,
   Search,
   Trash2,
-  RefreshCw,
   Settings,
   X,
   User,
+  Shield,
+  LayoutGrid,
+  List,
+  ChevronRight
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
@@ -144,6 +145,23 @@ export default function RoleManagement() {
       {},
     ),
   );
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+
+  const getPermissionColor = (color: string, active: boolean) => {
+    const variants: Record<string, string> = {
+      green: active ? "bg-green-500/10 border-green-500/40 text-green-400" : "border-white/5 bg-white/2 text-white/20",
+      blue: active ? "bg-blue-500/10 border-blue-500/40 text-blue-400" : "border-white/5 bg-white/2 text-white/20",
+      red: active ? "bg-red-500/10 border-red-500/40 text-red-400" : "border-white/5 bg-white/2 text-white/20",
+      indigo: active ? "bg-indigo-500/10 border-indigo-500/40 text-indigo-400" : "border-white/5 bg-white/2 text-white/20",
+      cyan: active ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-400" : "border-white/5 bg-white/2 text-white/20",
+      purple: active ? "bg-purple-500/10 border-purple-500/40 text-purple-400" : "border-white/5 bg-white/2 text-white/20",
+      magentaViolet: active ? "bg-magentaViolet-500/10 border-magentaViolet-500/40 text-magentaViolet-400" : "border-white/5 bg-white/2 text-white/20",
+      amber: active ? "bg-amber-500/10 border-amber-500/40 text-amber-400" : "border-white/5 bg-white/2 text-white/20",
+      orange: active ? "bg-orange-500/10 border-orange-500/40 text-orange-400" : "border-white/5 bg-white/2 text-white/20",
+    };
+    return variants[color] || variants.blue;
+  };
 
   const orgPubkey = useMemo(() => {
     try {
@@ -233,6 +251,7 @@ export default function RoleManagement() {
         .rpc();
 
       setNewRoleName("");
+      setShowCreateModal(false);
       fetchData();
     } catch (err) {
       console.error("Failed to create role:", err);
@@ -357,101 +376,159 @@ export default function RoleManagement() {
     );
   }
 
-  const orgName = organization
-    ? new TextDecoder()
-        .decode(Uint8Array.from(organization.name))
-        .replace(/\0/g, "")
-    : "Nexus Labs DAO";
-
   return (
     <>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 fade-in">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 fade-in">
         <div>
-          <div className="flex items-center gap-3 text-palePeriwinkle/40 text-xs font-mono mb-2">
-            <Link
-              to="/organizations"
-              className="hover:text-palePeriwinkle flex items-center gap-1 transition-colors cursor-pointer no-underline uppercase"
-            >
-              <svg
-                className="w-3 h-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                ></path>
-              </svg>
-              ORGANIZATIONS
-            </Link>
-            <span>/</span>
-            <Link
-              to={`/org/${id}`}
-              className="text-palePeriwinkle/60 no-underline hover:text-white uppercase transition-colors"
-            >
-              {orgName}
-            </Link>
+          <div className="flex items-center gap-2 text-palePeriwinkle/60 text-[10px] font-mono mb-1 uppercase tracking-[0.2em]">
+            Manage Roles & Permissions
           </div>
-          <h1 className="text-3xl font-sans font-medium text-white">
-            Role Management
+          <h1 className="text-2xl font-bold text-white uppercase tracking-tight">
+            Organization Roles
           </h1>
         </div>
         <button
-          onClick={() => {
-            const el = document.getElementById("create-role-section");
-            el?.scrollIntoView({ behavior: "smooth" });
-          }}
-          className="px-6 py-3 bg-pearlWhite text-deepIndigo rounded-full font-medium hover:bg-white transition-all transform hover:scale-105 shadow-[0_0_15px_rgba(77,143,255,0.2)] flex items-center gap-2 cursor-pointer border-none font-mono text-xs"
+          onClick={() => setShowCreateModal(true)}
+          className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-bold hover:bg-white/10 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 cursor-pointer font-mono text-xs uppercase tracking-widest shadow-2xl"
         >
-          <Plus className="w-4 h-4" />
-          NEW_ROLE
+          <Plus className="w-4 h-4 text-royalBlue" />
+          Create New Role
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-8 fade-in delay-100">
-        <div className="relative grow">
+      <div className="flex flex-col md:flex-row gap-4 mb-8 fade-in delay-100 items-center">
+        <div className="relative grow w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-palePeriwinkle/30" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search roles by name..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-palePeriwinkle/40 transition-colors placeholder:text-palePeriwinkle/20"
+            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-royalBlue/50 transition-all placeholder:text-palePeriwinkle/20"
           />
+        </div>
+        <div className="flex p-1 bg-white/5 border border-white/10 rounded-xl">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`p-2 rounded-lg transition-all border-none cursor-pointer ${viewMode === "list" ? "bg-white/10 text-white shadow-lg" : "text-palePeriwinkle/30 hover:text-palePeriwinkle/60 bg-transparent"}`}
+          >
+            <List className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`p-2 rounded-lg transition-all border-none cursor-pointer ${viewMode === "grid" ? "bg-white/10 text-white shadow-lg" : "text-palePeriwinkle/30 hover:text-palePeriwinkle/60 bg-transparent"}`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      <div className="space-y-4 mb-12 fade-in delay-200">
+      <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 text-white' : 'space-y-4'} mb-12 fade-in delay-200`}>
         {filteredRoles.map((role) => {
           const name = new TextDecoder()
             .decode(Uint8Array.from(role.account.name))
             .replace(/\0/g, "");
           const perms = BigInt(role.account.permissions.toString());
-          const hasRead = (perms & PERM_READ) !== BigInt(0);
-          const hasWrite = (perms & PERM_WRITE) !== BigInt(0);
-          const hasDelete = (perms & PERM_DELETE) !== BigInt(0);
-          const hasAdmin = (perms & PERM_SUPER_ADMIN) !== BigInt(0);
+
+          if (viewMode === 'grid') {
+            return (
+              <div
+                key={role.publicKey.toBase58()}
+                className="stat-card rounded-2xl p-5 border border-white/5 bg-white/2 hover:bg-white/5 transition-all group duration-300 relative"
+              >
+                <div className="flex items-start justify-between mb-5">
+                  <div className="p-2.5 bg-royalBlue/10 rounded-xl border border-royalBlue/20 group-hover:border-royalBlue/40 transition-colors">
+                    <Shield className="w-5 h-5 text-royalBlue" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleActive(role.publicKey, role.account.isActive);
+                      }}
+                      className={`relative w-9 h-5 rounded-full transition-all duration-300 border-none cursor-pointer ${role.account.isActive ? "bg-green-500/30 ring-1 ring-green-500/20" : "bg-white/10 ring-1 ring-white/5"}`}
+                    >
+                      <div className={`absolute top-1 w-3 h-3 rounded-full transition-all duration-300 ${role.account.isActive ? "right-1 bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "left-1 bg-white/30"}`} />
+                    </button>
+                    <button 
+                      onClick={() => setEditingRole(role)} 
+                      className="p-1.5 rounded-lg bg-white/5 text-palePeriwinkle/40 hover:text-white hover:bg-white/10 border border-white/5 cursor-pointer transition-all translate-y-0.5"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <h3 className="text-[15px] font-mono font-bold text-white uppercase tracking-tight truncate">
+                    {name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[9px] text-palePeriwinkle/60 font-mono tracking-widest uppercase">
+                      Slot {role.account.roleIndex.toString().padStart(2, '0')}
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-white/10" />
+                    <span className={`text-[8px] font-mono font-bold ${role.account.isActive ? "text-green-400" : "text-red-400"}`}>
+                      {role.account.isActive ? "ACTIVE" : "INACTIVE"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 mb-6 min-h-[40px] content-start">
+                  {PERMISSIONS_LIST.map((p) => {
+                    if ((perms & p.bit) !== BigInt(0)) {
+                      return (
+                        <div
+                          key={p.id}
+                          className={`px-2 py-0.5 rounded-md border text-[8px] font-bold font-mono tracking-tighter ${getPermissionColor(p.color, true)} bg-transparent! opacity-90 transition-opacity whitespace-nowrap`}
+                        >
+                          {p.label}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-palePeriwinkle/40" />
+                    <span className="text-[11px] font-mono font-bold text-white/70">
+                      {role.account.referenceCount.toString().padStart(2, "0")}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => fetchMembersForRole(role)}
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-white/5 text-[9px] font-mono font-bold text-palePeriwinkle/60 hover:text-royalBlue transition-all border-none cursor-pointer uppercase tracking-tight"
+                  >
+                    View Members <ChevronRight className="w-3 h-3 translate-y-[0.5px]" />
+                  </button>
+                </div>
+              </div>
+            );
+          }
 
           return (
             <div
               key={role.publicKey.toBase58()}
-              className="glass-card rounded-2xl overflow-hidden"
+              className="stat-card rounded-2xl overflow-hidden border border-white/5 bg-white/2 hover:bg-white/5 transition-all group duration-300"
             >
               <div className="p-6 flex flex-wrap items-center justify-between gap-6">
                 <div className="flex items-center gap-6">
-                  <div>
-                    <h3 className="text-lg font-mono font-bold text-white tracking-tight uppercase">
-                      {name}
-                    </h3>
-                    <p className="text-[10px] text-palePeriwinkle/30 font-mono mt-1">
-                      INDEX: {role.account.roleIndex} | CREATED:{" "}
-                      {new Date(
-                        role.account.createdAt.toNumber() * 1000,
-                      ).toLocaleDateString()}
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white/5 rounded-xl border border-white/10 group-hover:border-royalBlue/30 transition-colors">
+                      <Shield className="w-5 h-5 text-royalBlue" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-mono font-bold text-white tracking-tight uppercase">
+                        {name}
+                      </h3>
+                      <p className="text-[10px] text-palePeriwinkle/50 font-mono mt-1">
+                        INDEX_{role.account.roleIndex} • {new Date(
+                          role.account.createdAt.toNumber() * 1000,
+                        ).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {PERMISSIONS_LIST.map((p) => {
@@ -486,7 +563,7 @@ export default function RoleManagement() {
                       className={`w-1 h-1 rounded-full ${role.account.isActive ? "bg-green-400" : "bg-red-400"}`}
                     ></span>
                     <span
-                      className={`text-[10px] font-mono uppercase ${role.account.isActive ? "text-green-400/80" : "text-red-400/80"}`}
+                      className={`text-[10px] font-mono uppercase ${role.account.isActive ? "text-green-400" : "text-red-400"}`}
                     >
                       {role.account.isActive ? "Active" : "Inactive"}
                     </span>
@@ -511,11 +588,9 @@ export default function RoleManagement() {
                           role.account.isActive,
                         )
                       }
-                      className={`p-2 transition-colors cursor-pointer border-none bg-transparent ${role.account.isActive ? "text-amber-500/40 hover:text-amber-400" : "text-green-500/40 hover:text-green-400"}`}
+                      className={`relative w-9 h-5 rounded-full transition-all duration-300 border-none cursor-pointer ${role.account.isActive ? "bg-green-500/30 ring-1 ring-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]" : "bg-white/10 ring-1 ring-white/5 shadow-inner"}`}
                     >
-                      <RefreshCw
-                        className={`w-4 h-4 ${!role.account.isActive ? "animate-pulse" : ""}`}
-                      />
+                      <div className={`absolute top-1 w-3 h-3 rounded-full transition-all duration-300 ${role.account.isActive ? "right-1 bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "left-1 bg-white/30"}`} />
                     </button>
                     <button
                       onClick={() => handleCloseRole(role.publicKey)}
@@ -531,7 +606,7 @@ export default function RoleManagement() {
         })}
 
         {filteredRoles.length === 0 && (
-          <div className="py-20 text-center glass-card rounded-2xl">
+          <div className="py-20 text-center glass-card rounded-2xl col-span-full">
             <p className="text-palePeriwinkle/20 font-mono text-xs italic">
               NO_ROLES_DEFINED.LOG
             </p>
@@ -539,88 +614,89 @@ export default function RoleManagement() {
         )}
       </div>
 
-      <div
-        id="create-role-section"
-        className="glass-panel border border-magentaViolet/30 rounded-3xl p-8 mb-20 fade-in delay-300"
-      >
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-xl font-medium text-white mb-1">
-              Create New Role
-            </h2>
-            <p className="text-xs text-palePeriwinkle/40 font-mono uppercase tracking-widest">
-              GENERATE_ROLE_DEFINITION.EXE
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div>
-              <label className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-2">
-                Role Designation
-              </label>
-              <input
-                type="text"
-                value={newRoleName}
-                onChange={(e) => setNewRoleName(e.target.value)}
-                placeholder="e.g. TREASURER"
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 text-sm font-mono text-white focus:outline-none focus:border-palePeriwinkle/40 transition-colors placeholder:text-white/10"
-              />
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <div className="glass-panel border border-white/10 w-full max-w-2xl rounded-3xl overflow-hidden fade-in animate-scale-up shadow-2xl">
+            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/2">
+              <div>
+                <h3 className="text-lg font-bold text-white uppercase tracking-tight">
+                  Create Role
+                </h3>
+                <p className="text-[10px] text-palePeriwinkle/60 font-mono uppercase tracking-[0.2em] mt-1">
+                  Define authority and functional permissions
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 text-palePeriwinkle/40 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer bg-transparent border-none"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          </div>
+            
+            <div className="p-8 space-y-8">
+              <div>
+                <label className="block text-[10px] font-mono text-palePeriwinkle/60 uppercase tracking-[0.2em] mb-3">
+                  Role Name
+                </label>
+                <input
+                  type="text"
+                  value={newRoleName}
+                  onChange={(e) => setNewRoleName(e.target.value)}
+                  placeholder="e.g. SYSTEMS_ADMIN"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 text-sm font-mono text-white focus:outline-none focus:border-royalBlue/50 transition-all placeholder:text-white/10 shadow-inner"
+                />
+              </div>
 
-          <div>
-            <label className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-4">
-              Permission Grid Configuration
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 text-center">
-              {PERMISSIONS_LIST.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => togglePermission(p.id)}
-                  className={`border rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer transition-all ${activeToggles[p.id] ? `bg-${p.color}-500/10 border-${p.color}-500/40 shadow-[0_0_15px_rgba(0,0,0,0.1)]` : "border-white/10 hover:bg-white/5"}`}
-                >
-                  <span
-                    className={`text-[9px] font-mono font-bold tracking-widest ${activeToggles[p.id] ? "text-white" : "text-white/20"}`}
-                  >
-                    {p.label}
-                  </span>
+              <div>
+                <label className="block text-[10px] font-mono text-palePeriwinkle/60 uppercase tracking-[0.2em] mb-4">
+                  Permission Matrix
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {PERMISSIONS_LIST.map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => togglePermission(p.id)}
+                      className={`group relative border rounded-xl p-3 flex flex-col gap-1 cursor-pointer transition-all duration-300 ${getPermissionColor(p.color, activeToggles[p.id])} ${activeToggles[p.id] ? 'shadow-lg' : 'hover:bg-white/5 hover:border-white/20'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[10px] font-mono font-black tracking-widest transition-colors ${activeToggles[p.id] ? "" : "text-white/40"}`}>
+                          {p.label}
+                        </span>
+                        <div className={`w-1.5 h-1.5 rounded-full transition-all ${activeToggles[p.id] ? `bg-current shadow-[0_0_8px_currentColor]` : "bg-white/10"}`} />
+                      </div>
+                      <span className="text-[8px] font-mono text-palePeriwinkle/60 uppercase group-hover:text-palePeriwinkle/80 transition-colors">
+                        {p.category} Permissions
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 py-4 border border-white/5 bg-white/2 rounded-xl text-[10px] font-mono font-bold text-palePeriwinkle/60 uppercase tracking-widest hover:bg-white/5 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateRole}
+                  disabled={isCreating || !newRoleName}
+                  className="flex-1 py-4 bg-white text-deepIndigo rounded-xl text-[10px] font-mono font-black uppercase tracking-widest hover:bg-pearlWhite disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl flex items-center justify-center gap-2 border-none"
+                >
+                  {isCreating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                  Initialize Role
+                </button>
+              </div>
             </div>
           </div>
         </div>
-
-        <div className="mt-12 flex justify-end gap-4">
-          <button
-            onClick={() => {
-              setNewRoleName("");
-              setActiveToggles({
-                read: true,
-                write: false,
-                delete: false,
-                admin: false,
-              });
-            }}
-            className="px-8 py-3 border border-white/10 rounded-full text-sm font-medium text-palePeriwinkle hover:bg-white/5 transition-colors cursor-pointer bg-transparent"
-          >
-            Reset
-          </button>
-          <button
-            onClick={handleCreateRole}
-            disabled={isCreating || !newRoleName}
-            className="px-8 py-3 bg-magentaViolet text-white rounded-full font-medium hover:bg-magentaViolet/80 transition-all shadow-[0_0_20px_rgba(77,143,255,0.2)] cursor-pointer border-none flex items-center gap-2"
-          >
-            {isCreating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Plus className="w-4 h-4" />
-            )}
-            Deploy Role
-          </button>
-        </div>
-      </div>
+      )}
 
       {editingRole && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -663,13 +739,13 @@ export default function RoleManagement() {
                           },
                         });
                       }}
-                      className={`p-3 border rounded-xl flex items-center justify-between cursor-pointer transition-all ${hasPerm ? `bg-${p.color}-500/10 border-${p.color}-500/40` : "border-white/5 bg-white/2 hover:bg-white/5"}`}
+                      className={`p-3 border rounded-xl flex items-center justify-between cursor-pointer transition-all ${getPermissionColor(p.color, hasPerm)}`}
                     >
-                      <span className="text-[10px] font-mono font-bold uppercase text-white">
+                      <span className={`text-[10px] font-mono font-bold uppercase transition-colors ${hasPerm ? "text-white" : "text-white/40"}`}>
                         {p.label}
                       </span>
                       <div
-                        className={`w-2 h-2 rounded-full ${hasPerm ? `bg-${p.color}-400` : "bg-white/10"}`}
+                        className={`w-2 h-2 rounded-full transition-all ${hasPerm ? `bg-current shadow-[0_0_8px_currentColor]` : "bg-white/10"}`}
                       ></div>
                     </div>
                   );
@@ -678,9 +754,9 @@ export default function RoleManagement() {
               <div className="mt-8 flex gap-4">
                 <button
                   onClick={() => setEditingRole(null)}
-                  className="flex-1 py-3 border border-white/10 rounded-full text-sm font-medium text-palePeriwinkle hover:bg-white/5 cursor-pointer bg-transparent"
+                  className="flex-1 py-3 border border-white/5 bg-white/2 rounded-xl text-[10px] font-mono font-bold text-palePeriwinkle/60 uppercase tracking-widest hover:bg-white/5 transition-all cursor-pointer"
                 >
-                  Cancel
+                  Cancel Edit
                 </button>
                 <button
                   onClick={() =>
@@ -689,7 +765,7 @@ export default function RoleManagement() {
                       BigInt(editingRole.account.permissions.toString()),
                     )
                   }
-                  className="flex-1 py-3 bg-magentaViolet text-white rounded-full font-medium hover:bg-magentaViolet/80 transition-all border-none cursor-pointer"
+                  className="flex-1 py-3 bg-white text-deepIndigo rounded-xl text-[10px] font-mono font-black uppercase tracking-widest hover:bg-pearlWhite transition-all shadow-xl border-none cursor-pointer"
                 >
                   Save Changes
                 </button>
@@ -700,55 +776,74 @@ export default function RoleManagement() {
       )}
 
       {viewingMembersRole && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-white">
-          <div className="glass-panel border border-white/10 w-full max-w-lg rounded-3xl overflow-hidden fade-in animate-scale-up">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between">
-              <h3 className="text-lg font-medium">
-                Members with Role:{" "}
-                {new TextDecoder()
-                  .decode(Uint8Array.from(viewingMembersRole.account.name))
-                  .replace(/\0/g, "")}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 text-white">
+          <div className="glass-panel border border-white/10 w-full max-w-lg rounded-3xl overflow-hidden fade-in animate-scale-up shadow-2xl">
+            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/2">
+              <div>
+                <h3 className="text-lg font-bold uppercase tracking-tight">
+                  Role Members
+                </h3>
+                <p className="text-[10px] text-palePeriwinkle/60 font-mono uppercase tracking-[0.2em] mt-1">
+                  Active staff assigned to {new TextDecoder().decode(Uint8Array.from(viewingMembersRole.account.name)).replace(/\0/g, "")}
+                </p>
+              </div>
               <button
                 onClick={() => setViewingMembersRole(null)}
-                className="text-palePeriwinkle/40 hover:text-white cursor-pointer bg-transparent border-none"
+                className="p-2 text-palePeriwinkle/40 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer bg-transparent border-none"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 max-h-[400px] overflow-y-auto">
+            <div className="p-6 max-h-[400px] overflow-y-auto space-y-3 custom-scrollbar">
               {isMemberLoading ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="w-6 h-6 animate-spin text-palePeriwinkle" />
+                <div className="flex justify-center py-20">
+                  <Loader2 className="w-8 h-8 animate-spin text-royalBlue" />
                 </div>
               ) : members.length > 0 ? (
-                <div className="space-y-3">
-                  {members.map((m) => (
-                    <div
-                      key={m.publicKey.toBase58()}
-                      className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <User className="w-4 h-4 text-palePeriwinkle/40" />
-                        <span className="font-mono text-xs">
-                          {m.account.member.toBase58().slice(0, 12)}...
-                          {m.account.member.toBase58().slice(-8)}
+                members.map((m) => (
+                  <div
+                    key={m.publicKey.toBase58()}
+                    className="flex items-center justify-between p-4 bg-white/2 rounded-xl border border-white/5 hover:border-royalBlue/30 hover:bg-white/5 transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 bg-royalBlue/10 rounded-lg group-hover:bg-royalBlue/20 transition-colors">
+                        <User className="w-4 h-4 text-royalBlue" />
+                      </div>
+                      <div>
+                        <span className="font-mono text-xs font-bold block mb-0.5">
+                          {m.account.member.toBase58().slice(0, 12)}...{m.account.member.toBase58().slice(-12)}
+                        </span>
+                        <span className="text-[8px] font-mono text-palePeriwinkle/60 uppercase tracking-widest">
+                          Authorized Account
                         </span>
                       </div>
-                      <Link
-                        to={`/org/${id}/members`}
-                        className="text-[10px] font-mono text-magentaViolet hover:underline"
-                      >
-                        VIEW_MEMBERS
-                      </Link>
                     </div>
-                  ))}
-                </div>
+                    <Link
+                      to={`/org/${id}/members`}
+                      className="p-2 rounded-lg bg-white/5 hover:bg-royalBlue hover:text-white text-royalBlue transition-all"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Link>
+                  </div>
+                ))
               ) : (
-                <p className="text-center py-10 text-palePeriwinkle/20 font-mono text-xs italic">
-                  NO_MEMBERS_ASSIGNED.LOG
-                </p>
+                <div className="py-20 text-center">
+                   <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
+                      <User className="w-6 h-6 text-palePeriwinkle/10" />
+                   </div>
+                   <p className="text-palePeriwinkle/40 font-mono text-[10px] uppercase tracking-widest italic">
+                    NO_MEMBERS_FOUND
+                  </p>
+                </div>
               )}
+            </div>
+            <div className="p-6 bg-white/2 border-t border-white/5 flex justify-end">
+              <button
+                onClick={() => setViewingMembersRole(null)}
+                className="px-8 py-3 border border-white/5 bg-white/2 rounded-xl text-[10px] font-mono font-bold text-palePeriwinkle/60 uppercase tracking-widest hover:bg-white/5 transition-all cursor-pointer"
+              >
+                Close View
+              </button>
             </div>
           </div>
         </div>
