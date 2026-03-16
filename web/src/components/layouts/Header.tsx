@@ -10,11 +10,15 @@ export default function Header() {
 			<div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
 				<Link
 					to="/"
-					className="flex items-center gap-2 no-underline group cursor-pointer"
+					className="flex items-center gap-3 no-underline group cursor-pointer"
 				>
-					<div className="w-2 h-2 bg-palePeriwinkle rounded-full animate-pulse group-hover:bg-white transition-colors"></div>
+					<img 
+						src="/logo.png" 
+						alt="Sentinel RBAC Logo" 
+						className="w-6 h-6 object-contain group-hover:scale-110 transition-transform" 
+					/>
 					<span className="font-mono text-sm tracking-widest text-palePeriwinkle font-bold group-hover:text-white transition-colors">
-						SYS.RBAC.v1.0
+						SENTINEL RBAC
 					</span>
 				</Link>
 

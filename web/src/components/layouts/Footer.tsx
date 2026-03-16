@@ -7,10 +7,14 @@ export default function Footer() {
 			<div className="max-w-7xl mx-auto px-6">
 				<div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
 					<div className="col-span-1 md:col-span-1">
-						<div className="flex items-center gap-2 mb-6">
-							<div className="w-2 h-2 bg-royalBlue rounded-full"></div>
+						<div className="flex items-center gap-3 mb-6">
+							<img 
+								src="/logo.png" 
+								alt="Sentinel RBAC Logo" 
+								className="w-6 h-6 object-contain" 
+							/>
 							<span className="font-mono text-sm tracking-widest text-white font-bold">
-								SYS.RBAC
+								SENTINEL RBAC
 							</span>
 						</div>
 						<p className="text-sm text-palePeriwinkle/70 leading-relaxed mb-6">
@@ -114,7 +118,7 @@ export default function Footer() {
 
 				<div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-palePeriwinkle/50 font-mono">
 					<p className="opacity-70">
-						© {new Date().getFullYear()} SYS.RBAC Protocol. All rights reserved.
+						© {new Date().getFullYear()} Sentinel RBAC Protocol. All rights reserved.
 					</p>
 					<div className="flex gap-6">
 						<a
