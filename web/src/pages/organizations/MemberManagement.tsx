@@ -175,8 +175,16 @@ export default function MemberManagement() {
   };
 
   const handleLeave = async () => {
-    if (!program || !wallet || !orgPubkey) return;
-    if (!confirm("Are you sure you want to leave this organization?")) return;
+    if (!program || !wallet || !orgPubkey || !organization) return;
+
+    // Guard: Admin cannot leave without transferring ownership
+    if (wallet.publicKey.equals(organization.admin)) {
+      alert("CRITICAL: Organization Admin cannot leave. You must transfer admin ownership to another member before departing to prevent an orphan organization.");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to leave this organization? This will automatically revoke all your roles and close your staff profile.")) return;
+    
     try {
       const [membershipPda] = PublicKey.findProgramAddressSync(
         [
@@ -187,6 +195,52 @@ export default function MemberManagement() {
         program.programId,
       );
 
+      const membershipData = await program.account.membership.fetch(membershipPda);
+      const rolesBitmap = BigInt(membershipData.rolesBitmap.toString());
+      
+      // Step 1: Automate Role Revocation if any roles are active
+      if (rolesBitmap !== BigInt(0)) {
+        console.log("Cleaning up active roles before departure...");
+        for (let i = 0; i < 64; i++) {
+          if ((rolesBitmap & (BigInt(1) << BigInt(i))) !== BigInt(0)) {
+            const rolePda = PublicKey.findProgramAddressSync(
+              [
+                new TextEncoder().encode("role"),
+                orgPubkey.toBuffer(),
+                new Uint8Array([i]),
+              ],
+              program.programId,
+            )[0];
+
+            // Re-fetch remaining accounts logic for revoke
+            const remainingAccounts = [];
+            for (let j = 0; j < 64; j++) {
+              if (j !== i && (rolesBitmap & (BigInt(1) << BigInt(j))) !== BigInt(0)) {
+                const [rPda] = PublicKey.findProgramAddressSync(
+                  [new TextEncoder().encode("role"), orgPubkey.toBuffer(), new Uint8Array([j])],
+                  program.programId,
+                );
+                remainingAccounts.push({ pubkey: rPda, isWritable: false, isSigner: false });
+              }
+            }
+
+            console.log(`Revoking role at slot ${i}...`);
+            await program.methods
+              .revokeRole(i)
+              .accounts({
+                authority: wallet.publicKey,
+                organization: orgPubkey,
+                membership: membershipPda,
+                role: rolePda,
+              } as any)
+              .remainingAccounts(remainingAccounts)
+              .rpc();
+          }
+        }
+      }
+
+      // Step 2: Final Departure
+      console.log("Submitting final leave instruction...");
       await program.methods
         .leaveOrganization()
         .accounts({
@@ -196,10 +250,11 @@ export default function MemberManagement() {
         } as any)
         .rpc();
 
-      alert("You have left the organization.");
+      alert("You have successfully left the organization and reclaimed your rent SOL.");
       fetchData();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to leave organization:", err);
+      alert(`Departure failed: ${err.message || "Ensure you have permission to revoke your own roles."}`);
     }
   };
 
@@ -312,34 +367,41 @@ export default function MemberManagement() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => handleUpdateExpiry(member.account.member, null)}
-                      className="py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-mono font-bold text-palePeriwinkle/60 uppercase tracking-widest transition-all cursor-pointer"
+                      onClick={() => {
+                        // Keep MemberDetailModal open, just open the assign modal on top
+                        setIsAssignModalOpen(true);
+                      }}
+                      className="py-2.5 bg-royalBlue text-white rounded-xl text-[9px] font-mono font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer border-none shadow-[0_4px_12px_rgba(77,143,255,0.3)] hover:shadow-[0_6px_20px_rgba(77,143,255,0.4)] hover:scale-[1.02] active:scale-[0.98]"
                     >
-                      Perm_Set
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Add_Authority
                     </button>
                     <button
                       onClick={async () => {
                         if (!program || !wallet || !orgPubkey) return;
-                        const membershipData = await program.account.membership.fetch(member.publicKey);
-                        const rolesBitmap = BigInt(membershipData.rolesBitmap.toString());
-                        const roleAccounts = [];
-                        for (let i = 0; i < 64; i++) {
-                          if ((rolesBitmap & (BigInt(1) << BigInt(i))) !== BigInt(0)) {
-                            const [rPda] = PublicKey.findProgramAddressSync(
-                              [new TextEncoder().encode("role"), orgPubkey.toBuffer(), new Uint8Array([i])],
-                              program.programId,
-                            );
-                            roleAccounts.push({ pubkey: rPda, isWritable: false, isSigner: false });
+                        try {
+                          const rolesBitmap = BigInt(member.account.rolesBitmap.toString());
+                          const roleAccounts = [];
+                          for (let i = 0; i < 64; i++) {
+                            if ((rolesBitmap & (BigInt(1) << BigInt(i))) !== BigInt(0)) {
+                              const [rPda] = PublicKey.findProgramAddressSync(
+                                [new TextEncoder().encode("role"), orgPubkey.toBuffer(), new Uint8Array([i])],
+                                program.programId,
+                              );
+                              roleAccounts.push({ pubkey: rPda, isWritable: false, isSigner: false });
+                            }
                           }
+                          await program.methods.refreshPermissions().accounts({
+                            payer: wallet.publicKey,
+                            membership: member.publicKey,
+                            organization: orgPubkey,
+                          } as any).remainingAccounts(roleAccounts).rpc();
+                          fetchData();
+                        } catch (err) {
+                          console.error("Sync failed:", err);
                         }
-                        await program.methods.refreshPermissions().accounts({
-                          payer: wallet.publicKey,
-                          membership: member.publicKey,
-                          organization: orgPubkey,
-                        } as any).remainingAccounts(roleAccounts).rpc();
-                        fetchData();
-                      } }
-                      className="py-2.5 bg-royalBlue/10 hover:bg-royalBlue/20 border border-royalBlue/20 rounded-xl text-[9px] font-mono font-black text-royalBlue uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      }}
+                      className="py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-mono font-black text-palePeriwinkle uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       Sync_Node
@@ -590,11 +652,16 @@ export default function MemberManagement() {
       {orgPubkey && organization && (
         <AssignRoleModal
           isOpen={isAssignModalOpen}
-          onClose={() => setIsAssignModalOpen(false)}
+          onClose={() => {
+            setIsAssignModalOpen(false);
+            setSelectedMember(null); // Clear context on close
+          }}
           onSuccess={fetchData}
           orgPubkey={orgPubkey}
           organization={organization}
           roles={roles}
+          initialMemberAddress={selectedMember?.account.member.toBase58()}
+          existingRolesBitmap={selectedMember ? BigInt(selectedMember.account.rolesBitmap.toString()) : BigInt(0)}
         />
       )}
     </>

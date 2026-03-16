@@ -1,5 +1,5 @@
 import { X, Loader2, UserPlus, Shield, ChevronDown, Search, Calendar } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { useAnchorProgram } from "../../hooks/useAnchorProgram";
 import * as anchor from "@coral-xyz/anchor";
@@ -11,6 +11,8 @@ interface AssignRoleModalProps {
   orgPubkey: PublicKey;
   organization: any;
   roles: any[];
+  initialMemberAddress?: string;
+  existingRolesBitmap?: bigint;
 }
 
 export function AssignRoleModal({
@@ -20,15 +22,22 @@ export function AssignRoleModal({
   orgPubkey,
   organization,
   roles,
+  initialMemberAddress = "",
+  existingRolesBitmap = BigInt(0),
 }: AssignRoleModalProps) {
   const { program, wallet } = useAnchorProgram();
-  const [memberAddress, setMemberAddress] = useState("");
+  const [memberAddress, setMemberAddress] = useState(initialMemberAddress);
   const [selectedRoleIndex, setSelectedRoleIndex] = useState<number>(0);
   const [expiryDate, setExpiryDate] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [roleSearchTerm, setRoleSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update address if initialMemberAddress changes (modal re-open)
+  useEffect(() => {
+    setMemberAddress(initialMemberAddress);
+  }, [initialMemberAddress]);
 
   const filteredRoles = roles.filter(role => 
     new TextDecoder().decode(Uint8Array.from(role.account.name))
@@ -139,9 +148,15 @@ export function AssignRoleModal({
               type="text"
               value={memberAddress}
               onChange={(e) => setMemberAddress(e.target.value)}
+              disabled={!!initialMemberAddress}
               placeholder="Paste Solana address..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 text-sm font-mono text-white focus:outline-none focus:border-royalBlue/40 transition-colors placeholder:text-white/10"
+              className={`w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 text-sm font-mono text-white focus:outline-none focus:border-royalBlue/40 transition-colors placeholder:text-white/10 ${initialMemberAddress ? 'opacity-50 cursor-not-allowed bg-white/2' : ''}`}
             />
+            {initialMemberAddress && (
+              <p className="mt-2 text-[9px] font-mono text-palePeriwinkle/20 uppercase tracking-widest italic">
+                Target Node Locked for Session
+              </p>
+            )}
           </div>
 
           <div className="relative">
@@ -179,27 +194,34 @@ export function AssignRoleModal({
                   {filteredRoles.map((role) => {
                     const name = new TextDecoder().decode(Uint8Array.from(role.account.name)).replace(/\0/g, "");
                     const isSelected = selectedRoleIndex === role.account.roleIndex;
+                    const isAlreadyAssigned = (existingRolesBitmap & (BigInt(1) << BigInt(role.account.roleIndex))) !== BigInt(0);
+                    
                     return (
                       <div
                         key={role.account.roleIndex}
                         onClick={(e) => {
+                          if (isAlreadyAssigned) return;
                           e.stopPropagation();
                           setSelectedRoleIndex(role.account.roleIndex);
                           setIsDropdownOpen(false);
                           setRoleSearchTerm("");
                         }}
-                        className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${isSelected ? 'bg-royalBlue/20 border border-royalBlue/20' : 'hover:bg-white/5 border border-transparent'}`}
+                        className={`group flex items-center justify-between p-3 rounded-xl transition-all ${isAlreadyAssigned ? 'opacity-40 cursor-not-allowed grayscale' : 'cursor-pointer'} ${isSelected ? 'bg-royalBlue/20 border border-royalBlue/20' : 'hover:bg-white/5 border border-transparent'}`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`p-1.5 rounded-lg border transition-colors ${isSelected ? 'bg-royalBlue/20 border-royalBlue/30' : 'bg-white/5 border-white/10 group-hover:border-royalBlue/20'}`}>
                             <Shield className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-royalBlue'}`} />
                           </div>
                           <div>
-                            <p className="text-[10px] font-bold text-white uppercase tracking-tight">{name}</p>
+                            <p className="text-[10px] font-bold text-white uppercase tracking-tight">
+                              {name}
+                              {isAlreadyAssigned && <span className="ml-2 text-[8px] text-palePeriwinkle/40 italic">[Active]</span>}
+                            </p>
                             <p className="text-[8px] font-mono text-palePeriwinkle/40 mt-1 uppercase">SLOT {role.account.roleIndex.toString().padStart(2, '0')}</p>
                           </div>
                         </div>
-                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-royalBlue shadow-[0_0_8px_rgba(77,143,255,0.8)]" />}
+                        {isSelected && !isAlreadyAssigned && <div className="w-1.5 h-1.5 rounded-full bg-royalBlue shadow-[0_0_8px_rgba(77,143,255,0.8)]" />}
+                        {isAlreadyAssigned && <div className="w-1.5 h-1.5 rounded-full bg-palePeriwinkle/20" />}
                       </div>
                     );
                   })}
