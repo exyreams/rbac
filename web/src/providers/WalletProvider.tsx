@@ -18,8 +18,12 @@ export function WalletProvider({ children }: Props) {
 	// The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
 	const network = WalletAdapterNetwork.Devnet;
 
-	// You can also provide a custom RPC endpoint.
-	const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+	// You can also provide a custom RPC endpoint (e.g. Helius).
+	const endpoint = useMemo(() => {
+		const customUrl = import.meta.env.VITE_RPC_URL;
+		if (customUrl) return customUrl;
+		return clusterApiUrl(network);
+	}, [network]);
 
 	const wallets = useMemo(
 		() => [

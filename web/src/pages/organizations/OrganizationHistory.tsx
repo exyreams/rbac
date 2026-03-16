@@ -13,138 +13,46 @@ import {
 	Copy
 } from "lucide-react";
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
-import { useAnchorProgram } from "../../hooks/useAnchorProgram";
-import { PublicKey } from "@solana/web3.js";
+import { useState, useMemo } from "react";
+import { useOrganizationHistory } from "../../hooks/useOrganizationData";
 
 export default function OrganizationHistory() {
 	const { id } = useParams<{ id: string }>();
-	const { program } = useAnchorProgram();
-	const [activities, setActivities] = useState<any[]>([]);
+	const { data: activitiesRaw = [], isLoading } = useOrganizationHistory(id);
 	const [searchTerm, setSearchTerm] = useState("");
-	const [isLoading, setIsLoading] = useState(true);
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 
-	const orgPubkey = useMemo(() => {
-		try {
-			return id ? new PublicKey(id) : null;
-		} catch {
-			return null;
-		}
-	}, [id]);
+	const activities = useMemo(() => {
+		return activitiesRaw.map(activity => {
+			let icon = Terminal;
+			let color = "palePeriwinkle";
 
-	const fetchHistory = async () => {
-		if (!program || !orgPubkey) return;
-
-		try {
-			setIsLoading(true);
-			const connection = program.provider.connection;
-			
-			// Fetch transaction signatures for the organization account
-			const signatures = await connection.getSignaturesForAddress(orgPubkey, { limit: 20 });
-			
-			if (signatures.length === 0) {
-				setActivities([]);
-				return;
+			switch (activity.type) {
+				case "SYSTEM_INIT":
+					icon = Terminal;
+					color = "green";
+					break;
+				case "ROLE_DEFINE":
+					icon = PlusSquare;
+					color = "magentaViolet";
+					break;
+				case "MEMSHIP_SYNC":
+					icon = UserPlus;
+					color = "royalBlue";
+					break;
+				case "ROLE_ASSIGN":
+					icon = UserCheck;
+					color = "emerald-400";
+					break;
+				case "ROLE_REVOKE":
+					icon = ShieldCheck;
+					color = "red-400";
+					break;
 			}
 
-			// Fetch detailed transaction data for each signature
-			const txs = await Promise.all(
-				signatures.map(sig => connection.getParsedTransaction(sig.signature, {
-					maxSupportedTransactionVersion: 0
-				}))
-			);
-
-			const realActivities = signatures.map((sig, i) => {
-				const tx = txs[i];
-				const timestamp = sig.blockTime ? sig.blockTime * 1000 : Date.now();
-				
-				const logs = tx?.meta?.logMessages || [];
-				let type = "UNKNOWN_OP";
-				let label = "BLOCKCHAIN_OP";
-				let icon = Terminal;
-				let color = "palePeriwinkle";
-				let details = "External program interaction detected on-chain.";
-				let actor = "UNKNOWN";
-
-				if (tx) {
-					actor = tx.transaction.message.accountKeys[0].pubkey.toBase58();
-					const logString = logs.join(" ");
-
-					// Step 1: Broad Heuristic for Instruction Name
-					if (logString.includes("InitializeOrganization")) {
-						type = "SYSTEM_INIT";
-						label = "ORG_INIT";
-						icon = Terminal;
-						color = "green";
-						details = "On-chain organization manifest initialized. All system protocols active.";
-					} else if (logString.includes("CreateRole")) {
-						type = "ROLE_DEFINE";
-						label = "ROLE_DEFINE";
-						icon = PlusSquare;
-						color = "magentaViolet";
-						details = "New accessibility tier successfully pushed to the role registry.";
-					} else if (logString.includes("AddMember")) {
-						type = "MEMSHIP_SYNC";
-						label = "MEMBERSHIP_INIT";
-						icon = UserPlus;
-						color = "royalBlue";
-						details = "Identity synchronized with organization protocols.";
-					} else if (logString.includes("AssignRole")) {
-						type = "ROLE_ASSIGN";
-						label = "ROLE_ASSIGN";
-						icon = UserCheck;
-						color = "emerald-400";
-						details = "Granting specific permissions to a registered identity.";
-					} else if (logString.includes("RevokeRole")) {
-						type = "ROLE_REVOKE";
-						label = "ROLE_REVOKE";
-						icon = ShieldCheck;
-						color = "red-400";
-						details = "Removing accessibility permissions from an identity.";
-					}
-
-					// Step 2: Extract deeper "Program log: [Message]" content
-					const programLogLines = logs.filter(l => l.startsWith("Program log: ") && !l.includes("Instruction:"));
-					if (programLogLines.length > 0) {
-						// Prefer the last meatier log if available
-						const lastLog = programLogLines[programLogLines.length - 1].replace("Program log: ", "");
-						if (lastLog.length > 10) {
-							details = lastLog;
-						}
-					}
-				}
-
-				return {
-					id: sig.signature,
-					type,
-					label,
-					timestamp,
-					details,
-					icon,
-					color,
-					actor: actor.slice(0, 8) + "..." + actor.slice(-8),
-					fullActor: actor,
-					signature: sig.signature.slice(0, 8) + "..." + sig.signature.slice(-8),
-					fullSig: sig.signature,
-					slot: sig.slot.toLocaleString(),
-					fee: tx ? (tx.meta?.fee || 0) / 1e9 + " SOL" : "0.000005 SOL",
-					status: sig.confirmationStatus === "finalized" ? "Finalized" : "Confirmed",
-					rawLogs: logs
-				};
-			});
-
-			setActivities(realActivities);
-		} catch (err) {
-			console.error("Error fetching history:", err);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		fetchHistory();
-	}, [program, orgPubkey]);
+			return { ...activity, icon, color };
+		});
+	}, [activitiesRaw]);
 
 	const filteredActivities = useMemo(() => {
 		return activities.filter(a => 
@@ -158,7 +66,7 @@ export default function OrganizationHistory() {
 		setExpandedId(expandedId === id ? null : id);
 	};
 
-	if (isLoading) {
+	if (isLoading && activities.length === 0) {
 		return (
 			<div className="flex justify-center py-20">
 				<Loader2 className="w-8 h-8 text-royalBlue animate-spin" />
@@ -411,7 +319,15 @@ export default function OrganizationHistory() {
 				{filteredActivities.length === 0 && (
 					<div className="py-24 text-center border-t border-white/5">
 						<Terminal className="w-16 h-16 text-palePeriwinkle/5 mx-auto mb-4" />
-						<p className="text-palePeriwinkle/60 font-mono text-sm uppercase tracking-[0.3em] font-bold">OPERATIONS_LOG_EMPTY.SYS</p>
+						<p className="text-palePeriwinkle/60 font-mono text-sm uppercase tracking-[0.3em] font-bold mb-4">OPERATIONS_LOG_EMPTY.SYS</p>
+						<a 
+							href={`https://explorer.solana.com/address/${id}?cluster=devnet`}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-[10px] font-mono text-royalBlue/60 hover:text-royalBlue transition-colors uppercase tracking-widest font-bold"
+						>
+							[ VIEW_ON_CHAIN_EXPLORER ]
+						</a>
 					</div>
 				)}
 			</div>

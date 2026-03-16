@@ -12,16 +12,21 @@ const PERM_WRITE = BigInt(1) << BigInt(1);
 const PERM_DELETE = BigInt(1) << BigInt(2);
 const PERM_SUPER_ADMIN = BigInt(1) << BigInt(63);
 
+import { useQueryClient } from "@tanstack/react-query";
+import { useOrganization, useOrganizationRoles, useUserMembership, useVaults } from "../../hooks/useOrganizationData";
+
 export default function VaultDemo() {
 	const { id } = useParams<{ id: string }>();
 	const { program, vaultProgram, wallet } = useAnchorProgram();
-	const [organization, setOrganization] = useState<any>(null);
-	const [isLoading, setIsLoading] = useState(true);
+	const queryClient = useQueryClient();
+
+	const { data: organization, isLoading: isLoadingOrg } = useOrganization(id);
+	const { data: roles = [], isLoading: isLoadingRoles } = useOrganizationRoles(id);
+	const { data: vaults = [], isLoading: isLoadingVaults } = useVaults(id);
+	const { data: userMembership, isLoading: isLoadingMembership } = useUserMembership(id);
+
 	const [userPermissions, setUserPermissions] = useState<bigint>(BigInt(0));
 	const [logs, setLogs] = useState<any[]>([]);
-	const [vaults, setVaults] = useState<any[]>([]);
-	const [userMembership, setUserMembership] = useState<any | null>(null);
-	const [roles, setRoles] = useState<any[]>([]);
 	const [isActionLoading, setIsActionLoading] = useState(false);
 	
 	// Create/Update Modal State
@@ -29,6 +34,8 @@ export default function VaultDemo() {
 	const [newVaultLabel, setNewVaultLabel] = useState("");
 	const [newVaultData, setNewVaultData] = useState("");
 	const [editingVault, setEditingVault] = useState<any>(null);
+
+	const isLoading = isLoadingOrg || isLoadingRoles || isLoadingVaults || isLoadingMembership;
 
 	const orgPubkey = useMemo(() => {
 		try {
@@ -38,64 +45,24 @@ export default function VaultDemo() {
 		}
 	}, [id]);
 
-	const fetchData = async () => {
-		if (!program || !vaultProgram || !orgPubkey || !wallet) return;
-
-		try {
-			setIsLoading(true);
-			const [orgAccount, allVaults, allRoles] = await Promise.all([
-				program.account.organization.fetch(orgPubkey),
-				vaultProgram.account.vault.all([
-					{
-						memcmp: {
-							offset: 8, // organization pubkey
-							bytes: orgPubkey.toBase58(),
-						},
-					},
-				]),
-				program.account.role.all([
-					{
-						memcmp: {
-							offset: 8,
-							bytes: orgPubkey.toBase58(),
-						},
-					},
-				]),
-			]);
-
-			setOrganization(orgAccount);
-			setVaults(allVaults);
-			setRoles(allRoles);
-
-			const [membershipPda] = PublicKey.findProgramAddressSync(
-				[new TextEncoder().encode("membership"), orgPubkey.toBuffer(), wallet.publicKey.toBuffer()],
-				program.programId
-			);
-
-			try {
-				const membership = await program.account.membership.fetch(membershipPda);
-				setUserMembership(membership);
-				setUserPermissions(BigInt(membership.rolesBitmap.toString()) | BigInt(membership.cachedPermissions.toString()));
-			} catch {
-				setUserMembership(null);
-				// If admin but no membership, we still show admin permissions in UI
-				// but userMembership will be null, triggering the warning
-				if (orgAccount.admin.toBase58() === wallet.publicKey.toBase58()) {
-					setUserPermissions(PERM_SUPER_ADMIN | PERM_READ | PERM_WRITE | PERM_DELETE);
-				} else {
-					setUserPermissions(BigInt(0));
-				}
-			}
-		} catch (err) {
-			console.error("Error fetching vault data:", err);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
 	useEffect(() => {
-		fetchData();
-	}, [program, orgPubkey, wallet]);
+		if (userMembership) {
+			setUserPermissions(BigInt(userMembership.rolesBitmap.toString()) | BigInt(userMembership.cachedPermissions.toString()));
+		} else if (organization && wallet) {
+			if (organization.admin.toBase58() === wallet.publicKey.toBase58()) {
+				setUserPermissions(PERM_SUPER_ADMIN | PERM_READ | PERM_WRITE | PERM_DELETE);
+			} else {
+				setUserPermissions(BigInt(0));
+			}
+		}
+	}, [userMembership, organization, wallet]);
+
+	const invalidateData = () => {
+		queryClient.invalidateQueries({ queryKey: ["organization", id] });
+		queryClient.invalidateQueries({ queryKey: ["roles", id] });
+		queryClient.invalidateQueries({ queryKey: ["vaults", id] });
+		queryClient.invalidateQueries({ queryKey: ["user-membership", id] });
+	};
 
 	const addLog = (type: string, status: string, message: string) => {
 		setLogs(prev => [
@@ -143,7 +110,7 @@ export default function VaultDemo() {
 				.rpc();
 
 			addLog("MEMBERSHIP", "SUCCESS", `Profile initialized with role: ${formatBytes(writeRole.account.name)}`);
-			fetchData();
+			invalidateData();
 		} catch (err: any) {
 			console.error("Failed to initialize profile:", err);
 			addLog("MEMBERSHIP", "ERROR", `Failed: ${err.message || "Unknown error"}`);
@@ -188,7 +155,7 @@ export default function VaultDemo() {
 			setShowCreateModal(false);
 			setNewVaultLabel("");
 			setNewVaultData("");
-			fetchData();
+			invalidateData();
 		} catch (err: any) {
 			console.error("Error creating vault:", err);
 			addLog("INITIALIZE_ERROR", "ERROR", err.message || "Failed to initialize vault");
@@ -221,7 +188,7 @@ export default function VaultDemo() {
 			addLog("WRITE_SUCCESS", "SUCCESS", `Updated vault data for: ${editingVault.account.label}`);
 			setEditingVault(null);
 			setNewVaultData("");
-			fetchData();
+			invalidateData();
 		} catch (err: any) {
 			console.error("Error writing to vault:", err);
 			addLog("WRITE_ERROR", "ERROR", err.message || "Failed to write to vault");
@@ -285,7 +252,7 @@ export default function VaultDemo() {
 				.rpc();
 
 			addLog("DELETE_SUCCESS", "SUCCESS", `Deleted vault account`);
-			fetchData();
+			invalidateData();
 		} catch (err: any) {
 			console.error("Error deleting vault:", err);
 			addLog("DELETE_ERROR", "ERROR", err.message || "Failed to delete vault");
@@ -299,7 +266,7 @@ export default function VaultDemo() {
 		return new TextDecoder().decode(Uint8Array.from(bytes)).replace(/\0/g, "");
 	};
 
-	if (isLoading) {
+	if (isLoading && vaults.length === 0) {
 		return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-palePeriwinkle" /></div>;
 	}
 

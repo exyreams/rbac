@@ -12,7 +12,7 @@ import {
   List,
   ChevronRight
 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAnchorProgram } from "../../hooks/useAnchorProgram";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
@@ -124,12 +124,17 @@ const PERMISSIONS_LIST = [
   },
 ];
 
+import { useQueryClient } from "@tanstack/react-query";
+import { useOrganization, useOrganizationRoles } from "../../hooks/useOrganizationData";
+
 export default function RoleManagement() {
   const { id } = useParams<{ id: string }>();
   const { program, wallet } = useAnchorProgram();
-  const [roles, setRoles] = useState<any[]>([]);
-  const [organization, setOrganization] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: organization, isLoading: isLoadingOrg } = useOrganization(id);
+  const { data: rolesRaw, isLoading: isLoadingRoles } = useOrganizationRoles(id);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [editingRole, setEditingRole] = useState<any>(null);
@@ -171,37 +176,17 @@ export default function RoleManagement() {
     }
   }, [id]);
 
-  const fetchData = async () => {
-    if (!program || !orgPubkey) return;
+  const roles = useMemo(() => {
+    if (!rolesRaw) return [];
+    return [...rolesRaw].sort((a, b) => a.account.roleIndex - b.account.roleIndex);
+  }, [rolesRaw]);
 
-    try {
-      setIsLoading(true);
-      const [orgAccount, allRoles] = await Promise.all([
-        program.account.organization.fetch(orgPubkey),
-        program.account.role.all([
-          {
-            memcmp: {
-              offset: 8, // discriminator
-              bytes: orgPubkey.toBase58(),
-            },
-          },
-        ]),
-      ]);
+  const isLoading = isLoadingOrg || isLoadingRoles;
 
-      setOrganization(orgAccount);
-      setRoles(
-        allRoles.sort((a, b) => a.account.roleIndex - b.account.roleIndex),
-      );
-    } catch (err) {
-      console.error("Error fetching roles:", err);
-    } finally {
-      setIsLoading(false);
-    }
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ["organization", id] });
+    queryClient.invalidateQueries({ queryKey: ["roles", id] });
   };
-
-  useEffect(() => {
-    fetchData();
-  }, [program, orgPubkey]);
 
   const togglePermission = (key: string) => {
     setActiveToggles((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -252,7 +237,7 @@ export default function RoleManagement() {
 
       setNewRoleName("");
       setShowCreateModal(false);
-      fetchData();
+      invalidateData();
     } catch (err) {
       console.error("Failed to create role:", err);
     } finally {
@@ -277,7 +262,7 @@ export default function RoleManagement() {
           role: rolePda,
         } as any)
         .rpc();
-      fetchData();
+      invalidateData();
     } catch (err) {
       console.error("Failed to close role:", err);
     }
@@ -305,7 +290,7 @@ export default function RoleManagement() {
           } as any)
           .rpc();
       }
-      fetchData();
+      invalidateData();
     } catch (err) {
       console.error("Failed to toggle role status:", err);
     }
@@ -326,7 +311,7 @@ export default function RoleManagement() {
         } as any)
         .rpc();
       setEditingRole(null);
-      fetchData();
+      invalidateData();
     } catch (err) {
       console.error("Failed to update permissions:", err);
     }
@@ -368,7 +353,7 @@ export default function RoleManagement() {
     });
   }, [roles, searchTerm]);
 
-  if (isLoading) {
+  if (isLoading && roles.length === 0) {
     return (
       <div className="flex justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-palePeriwinkle" />

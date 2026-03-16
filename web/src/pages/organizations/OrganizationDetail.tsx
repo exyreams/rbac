@@ -11,66 +11,21 @@ import {
 	ChevronRight
 } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
-import { useAnchorProgram } from "../../hooks/useAnchorProgram";
-import { PublicKey } from "@solana/web3.js";
+import { useMemo } from "react";
+import { useOrganization, useOrganizationRoles, useOrganizationMembers } from "../../hooks/useOrganizationData";
 
 export default function OrganizationDetail() {
 	const { id } = useParams<{ id: string }>();
-	const { program } = useAnchorProgram();
-	const [organization, setOrganization] = useState<any>(null);
-	const [roles, setRoles] = useState<any[]>([]);
-	const [memberships, setMemberships] = useState<any[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
+	const { data: organization, isLoading: isLoadingOrg } = useOrganization(id);
+	const { data: rolesRaw, isLoading: isLoadingRoles } = useOrganizationRoles(id);
+	const { data: membershipsRaw, isLoading: isLoadingMembers } = useOrganizationMembers(id);
 
-	const orgPubkey = useMemo(() => {
-		try {
-			return id ? new PublicKey(id) : null;
-		} catch {
-			return null;
-		}
-	}, [id]);
+	const isLoading = isLoadingOrg || isLoadingRoles || isLoadingMembers;
 
-	const fetchData = async () => {
-		if (!program || !orgPubkey) return;
+	const roles = useMemo(() => rolesRaw?.map(r => r.account) || [], [rolesRaw]);
+	const memberships = useMemo(() => membershipsRaw?.map(m => m.account) || [], [membershipsRaw]);
 
-		try {
-			setIsLoading(true);
-			const [orgAccount, allRoles, allMemberships] = await Promise.all([
-				program.account.organization.fetch(orgPubkey),
-				program.account.role.all([
-					{
-						memcmp: {
-							offset: 8, // discriminator
-							bytes: orgPubkey.toBase58(),
-						},
-					},
-				]),
-				program.account.membership.all([
-					{
-						memcmp: {
-							offset: 8, // discriminator
-							bytes: orgPubkey.toBase58(),
-						},
-					},
-				]),
-			]);
-
-			setOrganization(orgAccount);
-			setRoles(allRoles.map(r => r.account));
-			setMemberships(allMemberships.map(m => m.account));
-		} catch (err) {
-			console.error("Error fetching organization detail:", err);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		fetchData();
-	}, [program, orgPubkey]);
-
-	if (isLoading) {
+	if (isLoading && !organization) {
 		return (
 			<div className="flex justify-center py-20">
 				<Loader2 className="w-8 h-8 text-palePeriwinkle animate-spin" />
@@ -183,8 +138,8 @@ export default function OrganizationDetail() {
 											</div>
 										</div>
 										<div className="flex items-center gap-2">
-											<span className={`px-2 py-0.5 rounded border text-[9px] font-mono uppercase tracking-widest ${m.is_active ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-												{m.is_active ? "Active" : "Inactive"}
+											<span className={`px-2 py-0.5 rounded border text-[9px] font-mono uppercase tracking-widest ${m.isActive ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+												{m.isActive ? "Active" : "Inactive"}
 											</span>
 										</div>
 									</div>
@@ -232,8 +187,8 @@ export default function OrganizationDetail() {
 									</div>
 									<div className="text-right">
 										<div className="text-white text-xs font-mono font-bold">{role.referenceCount} Members</div>
-										<div className={`text-[9px] font-mono font-bold ${role.is_active ? 'text-green-400' : 'text-red-400'}`}>
-											{role.is_active ? "READY" : "DEACTIVATED"}
+										<div className={`text-[9px] font-mono font-bold ${role.isActive ? 'text-green-400' : 'text-red-400'}`}>
+											{role.isActive ? "READY" : "DEACTIVATED"}
 										</div>
 									</div>
 								</div>

@@ -6,17 +6,22 @@ import {
   Loader2,
   Copy,
 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAnchorProgram } from "../../hooks/useAnchorProgram";
 import { PublicKey } from "@solana/web3.js";
+
+import { useQueryClient } from "@tanstack/react-query";
+import { useOrganization } from "../../hooks/useOrganizationData";
 
 export default function OrganizationSettings() {
   const { id } = useParams<{ id: string }>();
   const { program, wallet } = useAnchorProgram();
   const navigate = useNavigate();
-  const [organization, setOrganization] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: organization, isLoading } = useOrganization(id);
+
   const [newAdmin, setNewAdmin] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -28,22 +33,9 @@ export default function OrganizationSettings() {
     }
   }, [id]);
 
-  const fetchData = async () => {
-    if (!program || !orgPubkey) return;
-    try {
-      setIsLoading(true);
-      const orgAccount = await program.account.organization.fetch(orgPubkey);
-      setOrganization(orgAccount);
-    } catch (err) {
-      console.error("Error fetching settings:", err);
-    } finally {
-      setIsLoading(false);
-    }
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ["organization", id] });
   };
-
-  useEffect(() => {
-    fetchData();
-  }, [program, orgPubkey]);
 
   const handleTransferAdmin = async () => {
     if (!program || !wallet || !orgPubkey || !newAdmin) return;
@@ -60,7 +52,7 @@ export default function OrganizationSettings() {
 
       alert("Admin transferred successfully!");
       setNewAdmin("");
-      fetchData();
+      invalidateData();
     } catch (err) {
       console.error("Transfer failed:", err);
     } finally {
@@ -96,12 +88,20 @@ export default function OrganizationSettings() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !organization) {
     return (
       <div className="flex justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-palePeriwinkle" />
       </div>
     );
+  }
+
+  if (!organization) {
+      return (
+          <div className="text-center py-20">
+              <p className="text-palePeriwinkle/40 font-mono text-xs uppercase tracking-widest">Organization Not Found</p>
+          </div>
+      );
   }
 
   const downloadJson = (data: any, filename: string) => {

@@ -13,23 +13,29 @@ import {
   ExternalLink,
   X
 } from "lucide-react";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useAnchorProgram } from "../../hooks/useAnchorProgram";
 import { PublicKey } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import { AssignRoleModal } from "../../components/organizations/AssignRoleModal";
+import { useQueryClient } from "@tanstack/react-query";
+import { useOrganization, useOrganizationRoles, useOrganizationMembers } from "../../hooks/useOrganizationData";
 
 export default function MemberManagement() {
   const { id } = useParams<{ id: string }>();
   const { program, wallet } = useAnchorProgram();
-  const [memberships, setMemberships] = useState<any[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
-  const [organization, setOrganization] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: organization, isLoading: isLoadingOrg } = useOrganization(id);
+  const { data: roles = [], isLoading: isLoadingRoles } = useOrganizationRoles(id);
+  const { data: memberships = [], isLoading: isLoadingMembers } = useOrganizationMembers(id);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any | null>(null);
+
+  const isLoading = isLoadingOrg || isLoadingRoles || isLoadingMembers;
 
   const orgPubkey = useMemo(() => {
     try {
@@ -39,44 +45,11 @@ export default function MemberManagement() {
     }
   }, [id]);
 
-  const fetchData = async () => {
-    if (!program || !orgPubkey) return;
-
-    try {
-      setIsLoading(true);
-      const [orgAccount, allMemberships, allRoles] = await Promise.all([
-        program.account.organization.fetch(orgPubkey),
-        program.account.membership.all([
-          {
-            memcmp: {
-              offset: 8, // discriminator
-              bytes: orgPubkey.toBase58(),
-            },
-          },
-        ]),
-        program.account.role.all([
-          {
-            memcmp: {
-              offset: 8, // discriminator
-              bytes: orgPubkey.toBase58(),
-            },
-          },
-        ]),
-      ]);
-
-      setOrganization(orgAccount);
-      setMemberships(allMemberships);
-      setRoles(allRoles);
-    } catch (err) {
-      console.error("Error fetching memberships:", err);
-    } finally {
-      setIsLoading(false);
-    }
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ["organization", id] });
+    queryClient.invalidateQueries({ queryKey: ["roles", id] });
+    queryClient.invalidateQueries({ queryKey: ["memberships", id] });
   };
-
-  useEffect(() => {
-    fetchData();
-  }, [program, orgPubkey]);
 
   const handleRevoke = async (memberPubkey: PublicKey, roleIndex: number) => {
     if (!program || !wallet || !orgPubkey) return;
@@ -138,7 +111,7 @@ export default function MemberManagement() {
         .remainingAccounts(remainingAccounts)
         .rpc();
 
-      fetchData();
+      invalidateData();
     } catch (err) {
       console.error("Failed to revoke role:", err);
     }
@@ -168,7 +141,7 @@ export default function MemberManagement() {
         } as any)
         .rpc();
 
-      fetchData();
+      invalidateData();
     } catch (err) {
       console.error("Failed to update expiry:", err);
     }
@@ -251,7 +224,7 @@ export default function MemberManagement() {
         .rpc();
 
       alert("You have successfully left the organization and reclaimed your rent SOL.");
-      fetchData();
+      invalidateData();
     } catch (err: any) {
       console.error("Failed to leave organization:", err);
       alert(`Departure failed: ${err.message || "Ensure you have permission to revoke your own roles."}`);
@@ -273,7 +246,7 @@ export default function MemberManagement() {
     );
   }, [memberships, searchTerm]);
 
-  if (isLoading) {
+  if (isLoading && memberships.length === 0) {
     return (
       <div className="flex justify-center py-20">
         <Loader2 className="w-8 h-8 text-palePeriwinkle animate-spin" />
@@ -396,7 +369,7 @@ export default function MemberManagement() {
                             membership: member.publicKey,
                             organization: orgPubkey,
                           } as any).remainingAccounts(roleAccounts).rpc();
-                          fetchData();
+                          invalidateData();
                         } catch (err) {
                           console.error("Sync failed:", err);
                         }
@@ -653,7 +626,7 @@ export default function MemberManagement() {
             setIsAssignModalOpen(false);
             setSelectedMember(null); // Clear context on close
           }}
-          onSuccess={fetchData}
+          onSuccess={invalidateData}
           orgPubkey={orgPubkey}
           organization={organization}
           roles={roles}

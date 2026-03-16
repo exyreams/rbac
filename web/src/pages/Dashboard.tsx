@@ -1,99 +1,30 @@
 import { Plus, Search, Loader2, LayoutGrid, List as ListIcon, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAnchorProgram } from "../hooks/useAnchorProgram";
+import { useOrganizations } from "../hooks/useOrganizations";
 import CreateOrganizationModal from "../components/organizations/CreateOrganizationModal";
-import { PublicKey } from "@solana/web3.js";
 
-interface OrgData {
-	publicKey: PublicKey;
-	name: string;
-	admin: PublicKey;
-	memberCount: number;
-	roleCount: number;
-	createdAt: number;
-	role: "Admin" | "Member";
-}
 
 export default function Dashboard() {
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [orgs, setOrgs] = useState<OrgData[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
-	const { program, wallet } = useAnchorProgram();
+	const { wallet } = useAnchorProgram();
+	const { data: orgsRaw, isLoading, refetch } = useOrganizations();
 
-	const fetchOrgs = async () => {
-		if (!program || !wallet) return;
-
-		try {
-			setIsLoading(true);
-			// 1. Fetch all organizations created by this user
-			const adminOrgs = await program.account.organization.all([
-				{
-					memcmp: {
-						offset: 8, // discriminator
-						bytes: wallet.publicKey.toBase58(),
-					},
-				},
-			]);
-
-			// 2. Fetch all memberships for this user
-			const memberships = await program.account.membership.all([
-				{
-					memcmp: {
-						offset: 8 + 32, // discriminator + organization pubkey
-						bytes: wallet.publicKey.toBase58(),
-					},
-				},
-			]);
-
-			// 3. Fetch organizations for those memberships
-			const memberOrgsRaw = await Promise.all(
-				memberships.map((m) =>
-					program.account.organization.fetch(m.account.organization),
-				),
-			);
-
-			const memberOrgs = memberships.map((m, i) => ({
-				publicKey: m.account.organization,
-				name: new TextDecoder().decode(Uint8Array.from(memberOrgsRaw[i].name)).replace(/\0/g, ""),
-				admin: memberOrgsRaw[i].admin,
-				memberCount: memberOrgsRaw[i].memberCount,
-				roleCount: memberOrgsRaw[i].roleCount,
-				createdAt: memberOrgsRaw[i].createdAt.toNumber() * 1000,
-				role: "Member" as const,
-			}));
-
-			const formattedAdminOrgs = adminOrgs.map((o) => ({
-				publicKey: o.publicKey,
-				name: new TextDecoder().decode(Uint8Array.from(o.account.name)).replace(/\0/g, ""),
-				admin: o.account.admin,
-				memberCount: o.account.memberCount,
-				roleCount: o.account.roleCount,
-				createdAt: o.account.createdAt.toNumber() * 1000,
-				role: "Admin" as const,
-			}));
-
-			// Combine and deduplicate (admin orgs take precedence)
-			const combined: OrgData[] = [...formattedAdminOrgs];
-			for (const mOrg of memberOrgs) {
-				if (!combined.some((o) => o.publicKey.equals(mOrg.publicKey))) {
-					combined.push(mOrg);
-				}
-			}
-
-			setOrgs(combined.sort((a, b) => b.createdAt - a.createdAt));
-		} catch (err) {
-			console.error("Error fetching organizations:", err);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		fetchOrgs();
-	}, [program, wallet]);
+	const orgs = useMemo(() => {
+		if (!orgsRaw) return [];
+		return orgsRaw.map((o: any) => ({
+			publicKey: o.publicKey,
+			name: new TextDecoder().decode(Uint8Array.from(o.account.name)).replace(/\0/g, ""),
+			admin: o.account.admin,
+			memberCount: o.account.memberCount,
+			roleCount: o.account.roleCount,
+			createdAt: o.account.createdAt.toNumber() * 1000,
+			role: o.role,
+		}));
+	}, [orgsRaw]);
 
 	const filteredOrgs = useMemo(() => {
 		return orgs.filter(
@@ -296,7 +227,7 @@ export default function Dashboard() {
 			<CreateOrganizationModal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
-				onSuccess={fetchOrgs}
+				onSuccess={refetch}
 			/>
 		</>
 	);

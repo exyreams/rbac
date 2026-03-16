@@ -11,34 +11,37 @@ import OrganizationHistory from "./pages/organizations/OrganizationHistory";
 import OrganizationSettings from "./pages/organizations/OrganizationSettings";
 import RoleManagement from "./pages/organizations/RoleManagement";
 import VaultDemo from "./pages/organizations/VaultDemo";
+import { QueryProvider } from "./components/layouts/QueryProvider";
 
 function App() {
 	return (
-		<Routes>
-			<Route element={<LandingLayout />}>
-				<Route path="/" element={<LandingPage />} />
-			</Route>
-
-			<Route element={<DashboardLayout />}>
-				<Route path="/dashboard" element={<Dashboard />} />
-				<Route path="/organizations" element={<Navigate to="/dashboard" replace />} />
-				<Route path="/admin" element={<Navigate to="/dashboard" replace />} />
-
-				<Route path="/org/:id" element={<OrgLayout />}>
-					<Route index element={<OrganizationDetail />} />
-					<Route path="history" element={<OrganizationHistory />} />
-					<Route path="roles" element={<RoleManagement />} />
-					<Route path="members" element={<MemberManagement />} />
-					<Route path="vaults" element={<VaultDemo />} />
-					<Route path="settings" element={<OrganizationSettings />} />
+		<QueryProvider>
+			<Routes>
+				<Route element={<LandingLayout />}>
+					<Route path="/" element={<LandingPage />} />
 				</Route>
 
-				<Route path="/check" element={<PermissionCheckTool />} />
-			</Route>
+				<Route element={<DashboardLayout />}>
+					<Route path="/dashboard" element={<Dashboard />} />
+					<Route path="/organizations" element={<Navigate to="/dashboard" replace />} />
+					<Route path="/admin" element={<Navigate to="/dashboard" replace />} />
 
-			{/* Catch-all route to redirect back if not found to avoid blank pages during dev */}
-			<Route path="*" element={<Navigate to="/dashboard" replace />} />
-		</Routes>
+					<Route path="/org/:id" element={<OrgLayout />}>
+						<Route index element={<OrganizationDetail />} />
+						<Route path="history" element={<OrganizationHistory />} />
+						<Route path="roles" element={<RoleManagement />} />
+						<Route path="members" element={<MemberManagement />} />
+						<Route path="vaults" element={<VaultDemo />} />
+						<Route path="settings" element={<OrganizationSettings />} />
+					</Route>
+
+					<Route path="/check" element={<PermissionCheckTool />} />
+				</Route>
+
+				{/* Catch-all route to redirect back if not found to avoid blank pages during dev */}
+				<Route path="*" element={<Navigate to="/dashboard" replace />} />
+			</Routes>
+		</QueryProvider>
 	);
 }
 

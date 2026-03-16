@@ -1,42 +1,31 @@
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, Loader2, RefreshCw } from "lucide-react";
 import { Link, Outlet, useLocation, useParams } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
-import { useAnchorProgram } from "../../hooks/useAnchorProgram";
-import { PublicKey } from "@solana/web3.js";
+import { useMemo, useState } from "react";
+import { useOrganization } from "../../hooks/useOrganizationData";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function OrgLayout() {
 	const location = useLocation();
 	const { id } = useParams();
-	const { program } = useAnchorProgram();
-	const [orgName, setOrgName] = useState("");
-	const [orgData, setOrgData] = useState<any>(null);
-	const [isLoading, setIsLoading] = useState(true);
+	const queryClient = useQueryClient();
+	const { data: organization, isLoading, isFetching } = useOrganization(id);
+	const [isRefreshing, setIsRefreshing] = useState(false);
 
-	const orgPubkey = useMemo(() => {
-		try {
-			return id ? new PublicKey(id) : null;
-		} catch {
-			return null;
-		}
-	}, [id]);
+	const orgName = useMemo(() => {
+		if (!organization) return "Organization";
+		return new TextDecoder().decode(Uint8Array.from(organization.name)).replace(/\0/g, "");
+	}, [organization]);
 
-	useEffect(() => {
-		const fetchOrg = async () => {
-			if (!program || !orgPubkey) return;
-			try {
-				setIsLoading(true);
-				const data = await program.account.organization.fetch(orgPubkey);
-				const name = new TextDecoder().decode(Uint8Array.from(data.name)).replace(/\0/g, "");
-				setOrgName(name);
-				setOrgData(data);
-			} catch (err) {
-				console.error("Error fetching org for layout:", err);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-		fetchOrg();
-	}, [program, orgPubkey]);
+	const handleRefresh = async () => {
+		setIsRefreshing(true);
+		await queryClient.invalidateQueries({ queryKey: ["organization", id] });
+		await queryClient.invalidateQueries({ queryKey: ["roles", id] });
+		await queryClient.invalidateQueries({ queryKey: ["memberships", id] });
+		await queryClient.invalidateQueries({ queryKey: ["vaults", id] });
+		await queryClient.invalidateQueries({ queryKey: ["user-membership", id] });
+		await queryClient.invalidateQueries({ queryKey: ["history", id] });
+		setIsRefreshing(false);
+	};
 
 	const tabs = [
 		{ name: "OVERVIEW", path: `/org/${id}` },
@@ -47,7 +36,7 @@ export default function OrgLayout() {
 		{ name: "SETTINGS", path: `/org/${id}/settings` },
 	];
 
-	if (isLoading) {
+	if (isLoading && !organization) {
 		return (
 			<div className="flex justify-center py-20">
 				<Loader2 className="w-8 h-8 text-palePeriwinkle animate-spin" />
@@ -86,7 +75,7 @@ export default function OrgLayout() {
 							<div className="flex items-center gap-2">
 								<span className="text-palePeriwinkle/40 uppercase tracking-widest">ADMIN:</span>
 								<span className="text-palePeriwinkle opacity-80 uppercase tracking-tight">
-									{orgData?.admin.toBase58().slice(0, 8)}...
+									{organization?.admin.toBase58().slice(0, 8)}...
 								</span>
 							</div>
 							<div className="flex items-center gap-2">
@@ -94,7 +83,7 @@ export default function OrgLayout() {
 									EPOCH:
 								</span>
 								<span className="text-royalBlue font-bold uppercase tracking-tight">
-									{orgData?.permissionsEpoch.toString()}
+									{organization?.permissionsEpoch.toString()}
 								</span>
 							</div>
 						</div>
@@ -103,6 +92,22 @@ export default function OrgLayout() {
 							Cryptographically secured identity protocol. This organization operates via on-chain role-based access control, 
 							enforcing granular permissions across decentralized infrastructure and multi-sig vaults.
 						</p>
+					</div>
+
+					<div className="flex flex-col items-end gap-3">
+						<button
+							onClick={handleRefresh}
+							disabled={isRefreshing || isFetching}
+							className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-mono font-bold text-palePeriwinkle hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-50"
+						>
+							<RefreshCw className={`w-3 h-3 ${(isRefreshing || isFetching) ? "animate-spin" : ""}`} />
+							REFRESH_ON_CHAIN
+						</button>
+						{(isRefreshing || isFetching) && (
+							<span className="text-[9px] font-mono text-royalBlue animate-pulse uppercase tracking-widest">
+								Syncing_Nodes...
+							</span>
+						)}
 					</div>
 				</div>
 			</div>
