@@ -1,5 +1,7 @@
 # Solana On-Chain RBAC + Guarded Vault
 
+![Cover](web/public/cover.png)
+
 > Rebuilding enterprise Role-Based Access Control as composable Solana programs — proving Solana is a distributed state-machine backend, not just a crypto tool.
 
 [![Built with Anchor](https://img.shields.io/badge/Built%20with-Anchor%200.32.1-blueviolet)](https://www.anchor-lang.com/)
@@ -46,10 +48,10 @@
 
 This project implements a **production-grade Role-Based Access Control system** as two composable Solana programs:
 
-| Program | Program ID | Purpose |
-|---------|-----------|---------|
-| **`rbac`** | `EBPengHRgFJB2SLWscZD8yarTXLC6oJ5BdQSjK5V5wDb` | Core RBAC engine — organizations, roles, memberships, permission checks |
-| **`guarded_vault`** | `HgHvXGBihfmreQvnpm5JLbBLQUvkyWTqo7ryaFnez6uY` | Demo consumer — a key-value vault gated by RBAC via CPI |
+| Program             | Program ID                                     | Purpose                                                                 |
+| ------------------- | ---------------------------------------------- | ----------------------------------------------------------------------- |
+| **`rbac`**          | `EBPengHRgFJB2SLWscZD8yarTXLC6oJ5BdQSjK5V5wDb` | Core RBAC engine — organizations, roles, memberships, permission checks |
+| **`guarded_vault`** | `HgHvXGBihfmreQvnpm5JLbBLQUvkyWTqo7ryaFnez6uY` | Demo consumer — a key-value vault gated by RBAC via CPI                 |
 
 ### What This Demonstrates
 
@@ -204,25 +206,25 @@ rbac::cpi::check_permission(cpi_ctx, PERM_WRITE)?;
 
 ### Key Architectural Differences
 
-| Aspect | Web2 | Solana On-Chain |
-|--------|------|-----------------|
-| **Identity** | Username/password → JWT token | Ed25519 keypair (wallet) |
-| **State storage** | SQL rows in centralized DB | PDA accounts on distributed ledger |
-| **Permission check** | Middleware queries DB / Redis | CPI call: single bitwise AND |
-| **Data model** | Normalized tables with JOINs | Flat accounts with bitmap encoding |
-| **Caching** | Redis with TTL (time-based) | `cached_permissions` with epoch (version-based) |
-| **Cache invalidation** | TTL expiry or pub/sub events | `permissions_epoch` mismatch forces refresh |
-| **Atomicity** | DB transactions (BEGIN/COMMIT) | Solana transaction (all-or-nothing) |
-| **Audit trail** | Application logs (mutable, deletable) | Blockchain history (immutable, permanent) |
-| **Multi-tenancy** | Schema or row-level isolation | Organization PDA isolation |
-| **Composability** | REST APIs with API keys | CPI (zero-config, permissionless) |
-| **Cost model** | Fixed server + DB hosting | Rent (~0.002 SOL/account) + TX fees |
-| **Availability** | Depends on hosting SLA | Solana network consensus (99.5%+) |
-| **Latency** | ~1–50ms per request | ~400ms (slot time) for state changes |
-| **Read latency** | ~1–50ms | ~100ms (RPC call, no TX needed) |
-| **Throughput** | 1000s RPS per server (scalable) | ~1000 TPS network-wide (shared) |
-| **Admin power** | Full DB access, can modify anything | Constrained by program logic |
-| **Credential theft** | Passwords, tokens can be stolen | Private key only; no server-side secrets |
+| Aspect                 | Web2                                  | Solana On-Chain                                 |
+| ---------------------- | ------------------------------------- | ----------------------------------------------- |
+| **Identity**           | Username/password → JWT token         | Ed25519 keypair (wallet)                        |
+| **State storage**      | SQL rows in centralized DB            | PDA accounts on distributed ledger              |
+| **Permission check**   | Middleware queries DB / Redis         | CPI call: single bitwise AND                    |
+| **Data model**         | Normalized tables with JOINs          | Flat accounts with bitmap encoding              |
+| **Caching**            | Redis with TTL (time-based)           | `cached_permissions` with epoch (version-based) |
+| **Cache invalidation** | TTL expiry or pub/sub events          | `permissions_epoch` mismatch forces refresh     |
+| **Atomicity**          | DB transactions (BEGIN/COMMIT)        | Solana transaction (all-or-nothing)             |
+| **Audit trail**        | Application logs (mutable, deletable) | Blockchain history (immutable, permanent)       |
+| **Multi-tenancy**      | Schema or row-level isolation         | Organization PDA isolation                      |
+| **Composability**      | REST APIs with API keys               | CPI (zero-config, permissionless)               |
+| **Cost model**         | Fixed server + DB hosting             | Rent (~0.002 SOL/account) + TX fees             |
+| **Availability**       | Depends on hosting SLA                | Solana network consensus (99.5%+)               |
+| **Latency**            | ~1–50ms per request                   | ~400ms (slot time) for state changes            |
+| **Read latency**       | ~1–50ms                               | ~100ms (RPC call, no TX needed)                 |
+| **Throughput**         | 1000s RPS per server (scalable)       | ~1000 TPS network-wide (shared)                 |
+| **Admin power**        | Full DB access, can modify anything   | Constrained by program logic                    |
+| **Credential theft**   | Passwords, tokens can be stolen       | Private key only; no server-side secrets        |
 
 ---
 
@@ -234,7 +236,7 @@ rbac::cpi::check_permission(cpi_ctx, PERM_WRITE)?;
 Organization PDA
   seeds: ["organization", creator_pubkey, name_bytes]
   size:  8 + 175 bytes
-  
+
   ├── Role PDA (up to 64 per org)
   │     seeds: ["role", organization_pubkey, role_index_byte]
   │     size:  8 + 127 bytes
@@ -242,7 +244,7 @@ Organization PDA
   └── Membership PDA (one per member per org)
         seeds: ["membership", organization_pubkey, member_pubkey]
         size:  8 + 147 bytes
-        
+
 Vault PDA (in guarded_vault program)
   seeds: ["vault", organization_pubkey, label_bytes]
   size:  8 + 410 bytes
@@ -297,6 +299,7 @@ Permission check: (0x15 & PERM_WRITE) == PERM_WRITE
 ### Permissions Epoch (Cache Invalidation)
 
 Web2 cache invalidation strategies:
+
 - **TTL-based**: Cache expires after N seconds (simple but allows stale reads)
 - **Event-driven**: Pub/sub notifies cache to invalidate (complex but immediate)
 - **Version-based**: Compare version numbers (deterministic, no timing issues)
@@ -338,6 +341,7 @@ close_role:   require!(role.reference_count == 0)  // can't close with active me
 This prevents dangling bitmap references — a membership with bit 3 set but no Role 3 account would be in an undefined state.
 
 **Cleanup workflow:**
+
 1. Revoke role from all members (decrements `reference_count`)
 2. Close role (only succeeds when `reference_count == 0`)
 3. Close memberships (only succeeds when `roles_bitmap == 0`)
@@ -376,13 +380,13 @@ This prevents dangling bitmap references — a membership with bit 3 set but no 
 
 **Example role definitions:**
 
-| Role | Permissions | Bitmap Value |
-|------|-------------|-------------|
-| Viewer | READ | `0x0000000000000001` |
-| Editor | READ \| WRITE | `0x0000000000000003` |
-| Manager | READ \| WRITE \| DELETE \| ASSIGN_MEMBER | `0x0000000000040007` |
-| Admin | READ \| WRITE \| DELETE \| CREATE_ROLE \| ASSIGN_MEMBER \| REVOKE_MEMBER | `0x00000000000D0007` |
-| Super Admin | SUPER_ADMIN | `0x8000000000000000` |
+| Role        | Permissions                                                              | Bitmap Value         |
+| ----------- | ------------------------------------------------------------------------ | -------------------- |
+| Viewer      | READ                                                                     | `0x0000000000000001` |
+| Editor      | READ \| WRITE                                                            | `0x0000000000000003` |
+| Manager     | READ \| WRITE \| DELETE \| ASSIGN_MEMBER                                 | `0x0000000000040007` |
+| Admin       | READ \| WRITE \| DELETE \| CREATE_ROLE \| ASSIGN_MEMBER \| REVOKE_MEMBER | `0x00000000000D0007` |
+| Super Admin | SUPER_ADMIN                                                              | `0x8000000000000000` |
 
 **Custom permissions (bits 32-47)** allow applications to define domain-specific permissions without modifying the RBAC program:
 
@@ -420,6 +424,7 @@ The organization admin bypasses this check, as they are the root of trust.
 The most powerful aspect of on-chain RBAC is **permissionless composability via CPI**.
 
 In Web2, integrating with an authorization service requires:
+
 1. API key registration
 2. REST API calls with authentication headers
 3. Rate limit management
@@ -449,22 +454,23 @@ rbac::cpi::check_permission(cpi_ctx, PERM_WRITE)?;
 
 ```javascript
 // Express.js middleware
-app.put('/vault/:id',
-  requirePermission('WRITE'),  // ← this is what CPI replaces
+app.put(
+  "/vault/:id",
+  requirePermission("WRITE"), // ← this is what CPI replaces
   async (req, res) => {
     // handler
-  }
+  },
 );
 ```
 
 The `guarded_vault` program demonstrates this pattern with four operations:
 
-| Vault Operation | Required Permission | CPI Call |
-|----------------|-------------------|----------|
-| `initialize_vault` | `PERM_WRITE` | `check_permission(ctx, PERM_WRITE)` |
-| `write_vault` | `PERM_WRITE` | `check_permission(ctx, PERM_WRITE)` |
-| `read_vault` | `PERM_READ` | `check_permission(ctx, PERM_READ)` |
-| `delete_vault` | `PERM_DELETE` | `check_permission(ctx, PERM_DELETE)` |
+| Vault Operation    | Required Permission | CPI Call                             |
+| ------------------ | ------------------- | ------------------------------------ |
+| `initialize_vault` | `PERM_WRITE`        | `check_permission(ctx, PERM_WRITE)`  |
+| `write_vault`      | `PERM_WRITE`        | `check_permission(ctx, PERM_WRITE)`  |
+| `read_vault`       | `PERM_READ`         | `check_permission(ctx, PERM_READ)`   |
+| `delete_vault`     | `PERM_DELETE`       | `check_permission(ctx, PERM_DELETE)` |
 
 ---
 
@@ -472,32 +478,32 @@ The `guarded_vault` program demonstrates this pattern with four operations:
 
 ### RBAC Program Instructions
 
-| Instruction | Who Can Call | Description |
-|------------|-------------|-------------|
-| `initialize_organization` | Anyone | Creates an org. Signer becomes admin + creator. |
-| `transfer_admin` | Current admin | Transfers admin rights to a new wallet. |
-| `close_organization` | Admin | Closes org (requires 0 roles, 0 members). Reclaims rent. |
-| `create_role` | Admin or member with `CREATE_ROLE` | Creates a named role with permission bitmap. |
-| `update_role_permissions` | Admin | Changes a role's permissions. Increments epoch. |
-| `deactivate_role` | Admin | Soft-disables a role. Increments epoch. |
-| `reactivate_role` | Admin | Re-enables a deactivated role. Increments epoch. |
-| `close_role` | Admin | Closes role account (requires `reference_count == 0`). |
-| `assign_role` | Admin or member with `ASSIGN_MEMBER` | Assigns role to member. Creates membership if new. |
-| `revoke_role` | Admin or member with `REVOKE_MEMBER` | Removes role from member. Decrements reference count. |
-| `refresh_permissions` | Anyone (permissionless) | Recomputes cached permissions. Syncs epoch. |
-| `update_membership_expiry` | Admin | Sets or removes membership expiry timestamp. |
-| `leave_organization` | Member | Self-service departure (requires `roles_bitmap == 0`). |
-| `close_membership` | Admin | Removes a member (requires `roles_bitmap == 0`). |
-| `check_permission` | Any program via CPI | Verifies permission. Returns Ok or error. |
+| Instruction                | Who Can Call                         | Description                                              |
+| -------------------------- | ------------------------------------ | -------------------------------------------------------- |
+| `initialize_organization`  | Anyone                               | Creates an org. Signer becomes admin + creator.          |
+| `transfer_admin`           | Current admin                        | Transfers admin rights to a new wallet.                  |
+| `close_organization`       | Admin                                | Closes org (requires 0 roles, 0 members). Reclaims rent. |
+| `create_role`              | Admin or member with `CREATE_ROLE`   | Creates a named role with permission bitmap.             |
+| `update_role_permissions`  | Admin                                | Changes a role's permissions. Increments epoch.          |
+| `deactivate_role`          | Admin                                | Soft-disables a role. Increments epoch.                  |
+| `reactivate_role`          | Admin                                | Re-enables a deactivated role. Increments epoch.         |
+| `close_role`               | Admin                                | Closes role account (requires `reference_count == 0`).   |
+| `assign_role`              | Admin or member with `ASSIGN_MEMBER` | Assigns role to member. Creates membership if new.       |
+| `revoke_role`              | Admin or member with `REVOKE_MEMBER` | Removes role from member. Decrements reference count.    |
+| `refresh_permissions`      | Anyone (permissionless)              | Recomputes cached permissions. Syncs epoch.              |
+| `update_membership_expiry` | Admin                                | Sets or removes membership expiry timestamp.             |
+| `leave_organization`       | Member                               | Self-service departure (requires `roles_bitmap == 0`).   |
+| `close_membership`         | Admin                                | Removes a member (requires `roles_bitmap == 0`).         |
+| `check_permission`         | Any program via CPI                  | Verifies permission. Returns Ok or error.                |
 
 ### Guarded Vault Program Instructions
 
-| Instruction | Required Permission | Description |
-|------------|-------------------|-------------|
-| `initialize_vault` | WRITE | Creates a labeled vault with initial data. |
-| `write_vault` | WRITE | Overwrites vault data. Increments version. |
-| `read_vault` | READ | Emits read event for audit trail. |
-| `delete_vault` | DELETE | Closes vault account. Reclaims rent. |
+| Instruction        | Required Permission | Description                                |
+| ------------------ | ------------------- | ------------------------------------------ |
+| `initialize_vault` | WRITE               | Creates a labeled vault with initial data. |
+| `write_vault`      | WRITE               | Overwrites vault data. Increments version. |
+| `read_vault`       | READ                | Emits read event for audit trail.          |
+| `delete_vault`     | DELETE              | Closes vault account. Reclaims rent.       |
 
 ---
 
@@ -505,12 +511,12 @@ The `guarded_vault` program demonstrates this pattern with four operations:
 
 ### 1. Account Size vs Rent Cost
 
-| Account | Size (bytes) | Rent (SOL) | Web2 Equivalent |
-|---------|-------------|-----------|-----------------|
-| Organization | 183 | ~0.002 | `organizations` row |
-| Role | 135 | ~0.002 | `roles` + `role_permissions` rows |
-| Membership | 155 | ~0.002 | `user_roles` row + Redis cache entry |
-| Vault | 418 | ~0.004 | Key-value store entry |
+| Account      | Size (bytes) | Rent (SOL) | Web2 Equivalent                      |
+| ------------ | ------------ | ---------- | ------------------------------------ |
+| Organization | 183          | ~0.002     | `organizations` row                  |
+| Role         | 135          | ~0.002     | `roles` + `role_permissions` rows    |
+| Membership   | 155          | ~0.002     | `user_roles` row + Redis cache entry |
+| Vault        | 418          | ~0.004     | Key-value store entry                |
 
 Creating an org with 5 roles and 20 members costs ~0.054 SOL in rent. All rent is reclaimable when accounts are closed.
 
@@ -518,45 +524,45 @@ Creating an org with 5 roles and 20 members costs ~0.054 SOL in rent. All rent i
 
 ### 2. Compute Budget
 
-| Operation | Approximate CU | Notes |
-|-----------|---------------|-------|
-| `check_permission` (CPI) | ~15,000 | Single account read + bitwise AND |
-| `assign_role` | ~35,000 | Init-if-needed + state updates |
-| `revoke_role` | ~40,000 | State update + permission refresh |
-| `refresh_permissions` (10 roles) | ~80,000 | Iterates remaining_accounts |
+| Operation                        | Approximate CU | Notes                             |
+| -------------------------------- | -------------- | --------------------------------- |
+| `check_permission` (CPI)         | ~15,000        | Single account read + bitwise AND |
+| `assign_role`                    | ~35,000        | Init-if-needed + state updates    |
+| `revoke_role`                    | ~40,000        | State update + permission refresh |
+| `refresh_permissions` (10 roles) | ~80,000        | Iterates remaining_accounts       |
 
 Solana default limit is 200,000 CU per instruction (extendable to 1.4M per transaction). All operations fit comfortably within limits.
 
 ### 3. No Query Layer
 
-| Operation | Web2 | Solana |
-|-----------|------|--------|
-| "Get all members of org X" | `SELECT * FROM memberships WHERE org_id = X` | `getProgramAccounts` with filters (expensive RPC, not available on-chain) |
-| "Get member's permissions" | `SELECT ... JOIN ... WHERE user_id = Y` | Compute PDA from known seeds, fetch single account |
-| "Find orgs where user is admin" | `SELECT * FROM orgs WHERE admin_id = Y` | Must know org names or use off-chain indexer |
+| Operation                       | Web2                                         | Solana                                                                    |
+| ------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------- |
+| "Get all members of org X"      | `SELECT * FROM memberships WHERE org_id = X` | `getProgramAccounts` with filters (expensive RPC, not available on-chain) |
+| "Get member's permissions"      | `SELECT ... JOIN ... WHERE user_id = Y`      | Compute PDA from known seeds, fetch single account                        |
+| "Find orgs where user is admin" | `SELECT * FROM orgs WHERE admin_id = Y`      | Must know org names or use off-chain indexer                              |
 
 **Mitigation:** PDA seeds are deterministic. If you know the organization name and member pubkey, you can compute the exact account address client-side. For discovery queries, use an off-chain indexer like Helius or custom event listener.
 
 ### 4. Cache Consistency
 
-| Aspect | Web2 (Redis) | Solana (Epoch) |
-|--------|-------------|---------------|
-| Invalidation trigger | TTL expiry or pub/sub event | `permissions_epoch` increment |
-| Stale window | 0 to TTL seconds | Zero — check fails immediately |
-| Refresh mechanism | Automatic (TTL) or event handler | Explicit `refresh_permissions` call |
-| Who refreshes | Application server | Anyone (permissionless instruction) |
-| Failure mode | Stale cache serves outdated perms | Transaction rejected until refresh |
+| Aspect               | Web2 (Redis)                      | Solana (Epoch)                      |
+| -------------------- | --------------------------------- | ----------------------------------- |
+| Invalidation trigger | TTL expiry or pub/sub event       | `permissions_epoch` increment       |
+| Stale window         | 0 to TTL seconds                  | Zero — check fails immediately      |
+| Refresh mechanism    | Automatic (TTL) or event handler  | Explicit `refresh_permissions` call |
+| Who refreshes        | Application server                | Anyone (permissionless instruction) |
+| Failure mode         | Stale cache serves outdated perms | Transaction rejected until refresh  |
 
 The epoch model is **stricter** than TTL — there's no window where stale permissions are silently accepted. The tradeoff is that someone must call `refresh_permissions` after role changes.
 
 ### 5. Latency
 
-| Operation | Web2 | Solana |
-|-----------|------|--------|
-| Permission check (cached) | < 1ms (in-memory) | ~100ms (RPC simulation, no TX) |
-| Permission check (DB) | 1–50ms | ~400ms (on-chain TX) |
-| State change (role assign) | 1–50ms | ~400ms (requires TX confirmation) |
-| Read account data | 1–50ms | ~100ms (RPC `getAccountInfo`) |
+| Operation                  | Web2              | Solana                            |
+| -------------------------- | ----------------- | --------------------------------- |
+| Permission check (cached)  | < 1ms (in-memory) | ~100ms (RPC simulation, no TX)    |
+| Permission check (DB)      | 1–50ms            | ~400ms (on-chain TX)              |
+| State change (role assign) | 1–50ms            | ~400ms (requires TX confirmation) |
+| Read account data          | 1–50ms            | ~100ms (RPC `getAccountInfo`)     |
 
 Solana is slower for individual operations but provides guarantees that Web2 cannot: atomicity, immutability, and trustlessness.
 
@@ -578,6 +584,7 @@ In Web2, audit logs are stored in databases or log services that administrators 
 ### 7. Permissionless Composability (Advantage)
 
 The `guarded_vault` program was built with zero coordination with the RBAC program. It simply:
+
 1. Added `rbac` as a Cargo dependency with `features = ["cpi"]`
 2. Called `rbac::cpi::check_permission` in its instruction handlers
 
@@ -687,20 +694,20 @@ solana program show HgHvXGBihfmreQvnpm5JLbBLQUvkyWTqo7ryaFnez6uY
 
 ## Devnet Deployment
 
-| Program | Program ID | Explorer |
-|---------|-----------|----------|
-| RBAC | `EBPengHRgFJB2SLWscZD8yarTXLC6oJ5BdQSjK5V5wDb` | [View on Explorer](https://explorer.solana.com/address/EBPengHRgFJB2SLWscZD8yarTXLC6oJ5BdQSjK5V5wDb?cluster=devnet) |
+| Program       | Program ID                                     | Explorer                                                                                                            |
+| ------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| RBAC          | `EBPengHRgFJB2SLWscZD8yarTXLC6oJ5BdQSjK5V5wDb` | [View on Explorer](https://explorer.solana.com/address/EBPengHRgFJB2SLWscZD8yarTXLC6oJ5BdQSjK5V5wDb?cluster=devnet) |
 | Guarded Vault | `HgHvXGBihfmreQvnpm5JLbBLQUvkyWTqo7ryaFnez6uY` | [View on Explorer](https://explorer.solana.com/address/HgHvXGBihfmreQvnpm5JLbBLQUvkyWTqo7ryaFnez6uY?cluster=devnet) |
 
 ### Example Devnet Transactions
 
 <!-- Replace these with actual transaction signatures after deployment -->
 
-| Operation | Transaction |
-|-----------|------------|
-| Create Organization | [View TX](https://explorer.solana.com/tx/REPLACE_WITH_TX_SIG?cluster=devnet) |
-| Create Role | [View TX](https://explorer.solana.com/tx/REPLACE_WITH_TX_SIG?cluster=devnet) |
-| Assign Role | [View TX](https://explorer.solana.com/tx/REPLACE_WITH_TX_SIG?cluster=devnet) |
+| Operation                          | Transaction                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------------- |
+| Create Organization                | [View TX](https://explorer.solana.com/tx/REPLACE_WITH_TX_SIG?cluster=devnet) |
+| Create Role                        | [View TX](https://explorer.solana.com/tx/REPLACE_WITH_TX_SIG?cluster=devnet) |
+| Assign Role                        | [View TX](https://explorer.solana.com/tx/REPLACE_WITH_TX_SIG?cluster=devnet) |
 | CPI Permission Check (Vault Write) | [View TX](https://explorer.solana.com/tx/REPLACE_WITH_TX_SIG?cluster=devnet) |
 | Permission Denied (Reader → Write) | [View TX](https://explorer.solana.com/tx/REPLACE_WITH_TX_SIG?cluster=devnet) |
 
