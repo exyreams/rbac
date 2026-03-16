@@ -380,9 +380,6 @@ export default function RoleManagement() {
     <>
       <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 fade-in">
         <div>
-          <div className="flex items-center gap-2 text-palePeriwinkle/60 text-[10px] font-mono mb-1 uppercase tracking-[0.2em]">
-            Manage Roles & Permissions
-          </div>
           <h1 className="text-2xl font-bold text-white uppercase tracking-tight">
             Organization Roles
           </h1>
@@ -464,11 +461,11 @@ export default function RoleManagement() {
                     {name}
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] text-palePeriwinkle/60 font-mono tracking-widest uppercase">
+                    <span className="text-[9px] text-palePeriwinkle/80 font-mono tracking-widest uppercase font-bold">
                       Slot {role.account.roleIndex.toString().padStart(2, '0')}
                     </span>
-                    <span className="w-1 h-1 rounded-full bg-white/10" />
-                    <span className={`text-[8px] font-mono font-bold ${role.account.isActive ? "text-green-400" : "text-red-400"}`}>
+                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                    <span className={`text-[8px] font-mono font-black ${role.account.isActive ? "text-green-400" : "text-red-400"}`}>
                       {role.account.isActive ? "ACTIVE" : "INACTIVE"}
                     </span>
                   </div>

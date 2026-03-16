@@ -475,9 +475,6 @@ export default function MemberManagement() {
     <>
       <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 fade-in">
         <div>
-          <div className="flex items-center gap-2 text-palePeriwinkle/60 text-[10px] font-mono mb-1 uppercase tracking-[0.2em]">
-            Manage Staff & Permissions
-          </div>
           <h1 className="text-2xl font-bold text-white uppercase tracking-tight">
             Organization Members
           </h1>

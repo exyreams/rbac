@@ -7,7 +7,7 @@ import {
   Copy,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAnchorProgram } from "../../hooks/useAnchorProgram";
 import { PublicKey } from "@solana/web3.js";
 
@@ -104,11 +104,101 @@ export default function OrganizationSettings() {
     );
   }
 
-  const orgName = organization
-    ? new TextDecoder()
-        .decode(Uint8Array.from(organization.name))
-        .replace(/\0/g, "")
-    : "Unknown Organization";
+  const downloadJson = (data: any, filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportRoles = async () => {
+    if (!program || !orgPubkey) return;
+    try {
+      setIsProcessing(true);
+      const allRoles = await program.account.role.all([
+        {
+          memcmp: {
+            offset: 8, // discriminator
+            bytes: orgPubkey.toBase58(),
+          },
+        },
+      ]);
+
+      const rolesData = allRoles.map((r) => ({
+        publicKey: r.publicKey.toBase58(),
+        ...r.account,
+        name: new TextDecoder()
+          .decode(Uint8Array.from(r.account.name))
+          .replace(/\0/g, ""),
+        permissions: r.account.permissions.toString(),
+      }));
+
+      downloadJson(rolesData, `roles-${orgPubkey.toBase58().slice(0, 8)}.json`);
+    } catch (err) {
+      console.error("Export roles failed:", err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleExportSysState = async () => {
+    if (!program || !orgPubkey || !organization) return;
+    try {
+      setIsProcessing(true);
+      const [allRoles, allMemberships] = await Promise.all([
+        program.account.role.all([
+          { memcmp: { offset: 8, bytes: orgPubkey.toBase58() } },
+        ]),
+        program.account.membership.all([
+          { memcmp: { offset: 8, bytes: orgPubkey.toBase58() } },
+        ]),
+      ]);
+
+      const state = {
+        organization: {
+          publicKey: orgPubkey.toBase58(),
+          ...organization,
+          name: new TextDecoder()
+            .decode(Uint8Array.from(organization.name))
+            .replace(/\0/g, ""),
+          createdAt: organization.createdAt.toString(),
+          permissionsEpoch: organization.permissionsEpoch.toString(),
+        },
+        roles: allRoles.map((r) => ({
+          publicKey: r.publicKey.toBase58(),
+          ...r.account,
+          name: new TextDecoder()
+            .decode(Uint8Array.from(r.account.name))
+            .replace(/\0/g, ""),
+          permissions: r.account.permissions.toString(),
+        })),
+        memberships: allMemberships.map((m) => ({
+          publicKey: m.publicKey.toBase58(),
+          ...m.account,
+          member: m.account.member.toBase58(),
+          rolesBitmap: m.account.rolesBitmap.toString(),
+          expiresAt: m.account.expiresAt?.toString() || null,
+        })),
+      };
+
+      downloadJson(
+        state,
+        `system-state-${orgPubkey.toBase58().slice(0, 8)}.json`,
+      );
+    } catch (err) {
+      console.error("Export system state failed:", err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const isAdmin =
     wallet &&
     organization &&
@@ -116,113 +206,59 @@ export default function OrganizationSettings() {
 
   return (
     <>
-      <div className="mb-8 fade-in">
-        <div className="flex items-center gap-3 text-palePeriwinkle/40 text-xs font-mono mb-2">
-          <Link
-            to="/organizations"
-            className="hover:text-palePeriwinkle flex items-center gap-1 transition-colors no-underline uppercase"
-          >
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              ></path>
-            </svg>
-            ORGANIZATIONS
-          </Link>
-          <span>/</span>
-          <Link
-            to={`/org/${id}`}
-            className="text-palePeriwinkle/60 no-underline hover:text-white uppercase transition-colors"
-          >
-            {orgName}
-          </Link>
-        </div>
-        <h1 className="text-3xl font-sans font-medium text-white">Settings</h1>
+      <div className="mb-10 fade-in">
+        <h1 className="text-3xl font-sans font-medium text-white mb-2">Settings</h1>
+        <p className="text-palePeriwinkle/60 text-[10px] font-mono tracking-[0.4em]">CONFIGURATION.SYS</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 fade-in delay-100 text-white">
-        <div className="glass-card rounded-2xl border-l-2 border-l-magentaViolet p-8 flex flex-col gap-6">
-          <h3 className="font-mono text-xs font-bold text-white tracking-widest uppercase flex items-center gap-2">
-            <span className="w-1 h-3 bg-magentaViolet rounded-full"></span>{" "}
-            Profile
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase mb-2 tracking-widest">
-                Organization Name
-              </label>
-              <input
-                type="text"
-                value={orgName}
-                disabled
-                className="w-full px-4 py-3 rounded-xl font-mono text-sm bg-deepIndigo/50 border border-palePeriwinkle/15 text-white/50 focus:outline-none transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase mb-2 tracking-widest">
-                On-Chain Type
-              </label>
-              <div className="px-4 py-3 rounded-xl font-mono text-sm bg-deepIndigo/50 border border-white/5 text-palePeriwinkle/60">
-                RBAC_PROTOCOL_V1
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="glass-card rounded-2xl border-l-2 border-l-lightLavender/40 p-8 flex flex-col gap-6">
+        <div className="glass-card glass-card-no-shift rounded-2xl border-l-2 border-l-lightLavender/40 p-8 flex flex-col gap-6">
           <h3 className="font-mono text-xs font-bold text-white tracking-widest uppercase flex items-center gap-2">
             <span className="w-1 h-3 bg-lightLavender/60 rounded-full"></span>{" "}
             Organization Metadata
           </h3>
           <div className="grid grid-cols-2 gap-y-6 gap-x-4">
             <div>
-              <span className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+              <span className="block text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1">
                 Creation Date
               </span>
-              <span className="font-mono text-sm text-white/80">
+              <span className="font-mono text-sm text-white/90 font-bold">
                 {new Date(
                   organization.createdAt.toNumber() * 1000,
                 ).toLocaleDateString()}
               </span>
             </div>
             <div>
-              <span className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+              <span className="block text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1">
                 Permissions Epoch
               </span>
-              <span className="font-mono text-sm text-white/80">
+              <span className="font-mono text-sm text-white/90 font-bold">
                 {organization.permissionsEpoch.toString()}
               </span>
             </div>
             <div>
-              <span className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+              <span className="block text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1">
                 Total Members
               </span>
-              <span className="font-mono text-sm text-white/80">
+              <span className="font-mono text-sm text-white/90 font-bold">
                 {organization.memberCount.toString()}
               </span>
             </div>
             <div className="col-span-2">
-              <span className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+              <span className="block text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1">
                 Creator Address
               </span>
-              <span className="font-mono text-[10px] text-white/80 truncate">
+              <span className="font-mono text-[10px] text-white/90 font-medium truncate">
                 {organization.creator.toBase58()}
               </span>
             </div>
             <div className="col-span-2">
-              <span className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+              <span className="block text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1">
                 On-Chain Address
               </span>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] text-white/80 truncate">
+                <span className="font-mono text-[10px] text-white/90 font-medium truncate">
                   {id}
                 </span>
                 <button
@@ -237,18 +273,18 @@ export default function OrganizationSettings() {
               </div>
             </div>
             <div>
-              <span className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+              <span className="block text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1">
                 Network
               </span>
-              <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-[9px] font-mono text-blue-400 font-bold">
+              <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-[9px] font-mono text-blue-400 font-black uppercase shadow-[0_0_8px_rgba(59,130,246,0.1)]">
                 Solana Devnet
               </span>
             </div>
             <div>
-              <span className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+              <span className="block text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1">
                 Role Slots
               </span>
-              <span className="font-mono text-sm text-white/80">
+              <span className="font-mono text-sm text-white/90 font-bold">
                 {organization.roleCount} / 64
               </span>
             </div>
@@ -264,20 +300,53 @@ export default function OrganizationSettings() {
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>
+
+          <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={handleExportRoles}
+              disabled={isProcessing}
+              className="flex-1 p-3 flex items-center justify-between rounded-xl border border-white/10 hover:border-magentaViolet/30 hover:bg-white/2 transition-all group bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center gap-2">
+                <Download className="w-3.5 h-3.5 text-palePeriwinkle/40 group-hover:text-magentaViolet transition-colors" />
+                <span className="text-[10px] font-mono text-white/80 uppercase font-bold">
+                  Export_Roles
+                </span>
+              </div>
+              <span className="text-[9px] font-mono text-palePeriwinkle/30">
+                {organization.roleCount}_slots
+              </span>
+            </button>
+            <button
+              onClick={handleExportSysState}
+              disabled={isProcessing}
+              className="flex-1 p-3 flex items-center justify-between rounded-xl border border-white/10 hover:border-magentaViolet/30 hover:bg-white/2 transition-all group bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center gap-2">
+                <Download className="w-3.5 h-3.5 text-palePeriwinkle/40 group-hover:text-magentaViolet transition-colors" />
+                <span className="text-[10px] font-mono text-white/80 uppercase font-bold">
+                  Sys_State
+                </span>
+              </div>
+              <span className="text-[9px] font-mono text-palePeriwinkle/30">
+                rev_{organization.permissionsEpoch.toString()}
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div className="glass-card rounded-2xl border-l-2 border-l-white/20 p-8 flex flex-col gap-6">
+        <div className="glass-card glass-card-no-shift rounded-2xl border-l-2 border-l-white/20 p-8 flex flex-col gap-6">
           <h3 className="font-mono text-xs font-bold text-white tracking-widest uppercase flex items-center gap-2">
             <span className="w-1 h-3 bg-white/40 rounded-full"></span> Admin
             Management
           </h3>
           <div className="space-y-6">
             <div>
-              <label className="block text-[10px] font-mono text-palePeriwinkle/40 uppercase mb-3 tracking-widest">
+              <label className="block text-[10px] font-mono text-palePeriwinkle/70 uppercase mb-3 tracking-widest">
                 Current Root Admin
               </label>
               <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                <span className="font-mono text-[10px] text-white/80 truncate max-w-[200px]">
+                <span className="font-mono text-[10px] text-white/90 font-medium truncate max-w-[200px]">
                   {organization.admin.toBase58()}
                 </span>
                 {isAdmin && (
@@ -312,7 +381,7 @@ export default function OrganizationSettings() {
                     <h4 className="text-xs font-mono font-bold text-white uppercase mb-1">
                       Transfer Admin
                     </h4>
-                    <p className="text-[9px] font-mono text-palePeriwinkle/40 leading-relaxed">
+                    <p className="text-[9px] font-mono text-palePeriwinkle/60 leading-relaxed">
                       {isAdmin
                         ? "Permanently transfers root access to another wallet address."
                         : "ADMIN_PERMISSION_REQUIRED"}
@@ -324,39 +393,8 @@ export default function OrganizationSettings() {
           </div>
         </div>
 
-        <div className="glass-card rounded-2xl border-l-2 border-l-lightLavender/20 p-8 flex flex-col gap-6">
-          <h3 className="font-mono text-xs font-bold text-white tracking-widest uppercase flex items-center gap-2">
-            <span className="w-1 h-3 bg-lightLavender/30 rounded-full"></span>{" "}
-            Export System Configuration
-          </h3>
-          <div className="flex flex-col gap-3">
-            <button className="p-4 flex items-center justify-between rounded-xl border border-white/10 hover:border-magentaViolet/30 hover:bg-white/2 transition-all group bg-transparent cursor-pointer">
-              <div className="flex items-center gap-3">
-                <Download className="w-4 h-4 text-palePeriwinkle/40 group-hover:text-magentaViolet transition-colors" />
-                <span className="text-xs font-mono text-white/70">
-                  Export Roles (JSON)
-                </span>
-              </div>
-              <span className="text-[9px] font-mono text-palePeriwinkle/20">
-                {organization.roleCount}_slots
-              </span>
-            </button>
-            <button className="p-4 flex items-center justify-between rounded-xl border border-white/10 hover:border-magentaViolet/30 hover:bg-white/2 transition-all group bg-transparent cursor-pointer">
-              <div className="flex items-center gap-3">
-                <Download className="w-4 h-4 text-palePeriwinkle/40 group-hover:text-magentaViolet transition-colors" />
-                <span className="text-xs font-mono text-white/70">
-                  Organization State (JSON)
-                </span>
-              </div>
-              <span className="text-[9px] font-mono text-palePeriwinkle/20">
-                rev_{organization.permissionsEpoch.toString()}
-              </span>
-            </button>
-          </div>
-        </div>
-
         <div
-          className={`glass-card rounded-2xl border-l-2 border-l-red-500/50 p-8 flex flex-col gap-6 md:col-span-2 ${!isAdmin ? "opacity-50" : ""}`}
+          className={`glass-card glass-card-no-shift rounded-2xl border-l-2 border-l-red-500/50 p-8 flex flex-col gap-6 md:col-span-2 ${!isAdmin ? "opacity-50" : ""}`}
         >
           <div className="flex items-center justify-between">
             <h3 className="font-mono text-xs font-bold text-red-400 tracking-widest uppercase flex items-center gap-2">
@@ -372,7 +410,7 @@ export default function OrganizationSettings() {
               <h4 className="text-xs font-mono font-bold text-white uppercase mb-2">
                 Close Organization
               </h4>
-              <p className="text-[11px] font-mono text-palePeriwinkle/40 leading-relaxed">
+              <p className="text-[11px] font-mono text-palePeriwinkle/60 leading-relaxed">
                 This will permanently deactivate the organization and revoke all
                 roles. This action cannot be undone. All vault access through
                 this organization layer will be terminated immediately.

@@ -1,6 +1,6 @@
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Link } from "react-router-dom";
+import WalletDropdown from "./WalletDropdown";
 
 export default function Header() {
 	const { connected } = useWallet();
@@ -31,19 +31,13 @@ export default function Header() {
 					>
 						ADMIN
 					</Link>
-					<Link
-						to="/profile"
-						className="nav-link hover:text-white transition-colors no-underline"
-					>
-						PROFILE
-					</Link>
 				</div>
 
 				<div className="flex items-center gap-4">
-					<WalletMultiButton className="h-10! border border-white/20 bg-transparent! px-6! py-2! font-mono! text-xs! text-palePeriwinkle transition-colors hover:bg-white/5! rounded-full!" />
+					<WalletDropdown />
 					{connected && (
 						<Link
-							to="/admin"
+							to="/organizations"
 							className="font-mono text-xs border border-white/20 px-4 py-2 rounded-full text-palePeriwinkle hover:bg-white/5 transition-colors no-underline uppercase"
 						>
 							LAUNCH APP

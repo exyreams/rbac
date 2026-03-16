@@ -1,5 +1,5 @@
-import { User } from "lucide-react";
 import { Link, Outlet } from "react-router-dom";
+import WalletDropdown from "./WalletDropdown";
 
 export default function DashboardLayout() {
 	return (
@@ -32,16 +32,7 @@ export default function DashboardLayout() {
 					</div>
 
 					<div className="flex items-center gap-4">
-						<div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 font-mono text-[10px]">
-							<span className="text-green-400">●</span>
-							<span className="text-lightLavender">0x71C...4f92</span>
-						</div>
-						<Link
-							to="/profile"
-							className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/5 transition-colors cursor-pointer"
-						>
-							<User className="w-4 h-4 text-palePeriwinkle" />
-						</Link>
+						<WalletDropdown />
 					</div>
 				</div>
 			</nav>

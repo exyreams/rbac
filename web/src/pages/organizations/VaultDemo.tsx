@@ -312,9 +312,6 @@ export default function VaultDemo() {
 		<>
 			<div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 fade-in">
 				<div>
-					<div className="flex items-center gap-2 text-palePeriwinkle/60 text-[10px] font-mono mb-1 uppercase tracking-[0.2em]">
-						On-Chain Security Assets
-					</div>
 					<h1 className="text-2xl font-bold text-white uppercase tracking-tight">
 						{organization ? formatBytes(organization.name) : "Organization"} Vaults
 					</h1>
@@ -479,12 +476,12 @@ export default function VaultDemo() {
 								)}
 								<div className="flex items-center justify-between mb-4">
 									<div className="flex items-center gap-2">
-										<Server className="w-3 h-3 text-green-400/60" />
-										<span className="text-[10px] font-mono text-green-400/60 uppercase tracking-widest">
+										<Server className="w-3 h-3 text-green-400/80" />
+										<span className="text-[10px] font-mono text-green-400/80 uppercase tracking-widest font-bold">
 											On-Chain Raw Data Buffer ({vault.account.dataLen} bytes)
 										</span>
 									</div>
-									<button className="text-palePeriwinkle/40 hover:text-white cursor-pointer bg-transparent border-none">
+									<button className="text-palePeriwinkle/70 hover:text-white cursor-pointer bg-transparent border-none">
 										<Maximize2 className="w-4 h-4" />
 									</button>
 								</div>

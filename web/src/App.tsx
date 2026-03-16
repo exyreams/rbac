@@ -11,7 +11,6 @@ import OrganizationHistory from "./pages/organizations/OrganizationHistory";
 import OrganizationSettings from "./pages/organizations/OrganizationSettings";
 import RoleManagement from "./pages/organizations/RoleManagement";
 import VaultDemo from "./pages/organizations/VaultDemo";
-import UserProfile from "./pages/UserProfile";
 
 function App() {
 	return (
@@ -34,7 +33,6 @@ function App() {
 					<Route path="settings" element={<OrganizationSettings />} />
 				</Route>
 
-				<Route path="/profile" element={<UserProfile />} />
 				<Route path="/check" element={<PermissionCheckTool />} />
 			</Route>
 

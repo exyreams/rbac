@@ -58,18 +58,6 @@ export default function OrgLayout() {
 	return (
 		<>
 			<div className="mb-10 fade-in">
-				<div className="flex items-center gap-3 text-palePeriwinkle text-[10px] font-mono mb-6 uppercase tracking-[0.2em]">
-					<Link
-						to="/dashboard"
-						className="hover:text-pearlWhite transition-colors opacity-70"
-					>
-						Dashboard
-					</Link>
-					<span className="opacity-30">/</span>
-					<span className="text-pearlWhite font-bold tracking-widest">
-						{orgName}
-					</span>
-				</div>
 
 				<div className="flex flex-col lg:flex-row justify-between items-start gap-8">
 					<div className="grow">

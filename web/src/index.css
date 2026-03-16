@@ -74,6 +74,10 @@
 		box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
 	}
 
+	.glass-card-no-shift:hover {
+		transform: none !important;
+	}
+
 	/* Premium Card - used in Landing Page main features */
 	.premium-card {
 		background: linear-gradient(

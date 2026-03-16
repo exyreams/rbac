@@ -92,30 +92,30 @@ export default function OrganizationDetail() {
 	return (
 		<>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10 fade-in delay-100">
-				<div className="stat-card rounded-xl p-6 border-l-2 border-l-palePeriwinkle/50">
-					<div className="text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-palePeriwinkle/70">
+					<div className="text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1 font-bold">
 						Total Members
 					</div>
 					<div className="text-2xl font-mono text-white font-bold">{organization.memberCount}</div>
 				</div>
-				<div className="stat-card rounded-xl p-6 border-l-2 border-l-magentaViolet/50">
-					<div className="text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-magentaViolet/70">
+					<div className="text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1 font-bold">
 						Active Roles
 					</div>
 					<div className="text-2xl font-mono text-white font-bold">{organization.roleCount.toString().padStart(2, '0')}</div>
 				</div>
-				<div className="stat-card rounded-xl p-6 border-l-2 border-l-royalBlue/50">
-					<div className="text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-royalBlue/70">
+					<div className="text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1 font-bold">
 						Permissions Epoch
 					</div>
 					<div className="text-2xl font-mono text-white font-bold">{organization.permissionsEpoch.toString()}</div>
 				</div>
-				<div className="stat-card rounded-xl p-6 border-l-2 border-l-white/10">
-					<div className="text-[10px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-white/20">
+					<div className="text-[10px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1 font-bold">
 						Admin
 					</div>
 					<div className="flex items-center justify-between gap-2 overflow-hidden">
-						<div className="text-sm font-mono text-white truncate font-bold">{organization.admin.toBase58().slice(0, 8)}...</div>
+						<div className="text-sm font-mono text-white/90 truncate font-bold">{organization.admin.toBase58().slice(0, 8)}...</div>
 						<button 
 							onClick={() => navigator.clipboard.writeText(organization.admin.toBase58())}
 							className="p-1.5 hover:bg-white/10 rounded transition-colors text-palePeriwinkle/40 hover:text-royalBlue shrink-0"

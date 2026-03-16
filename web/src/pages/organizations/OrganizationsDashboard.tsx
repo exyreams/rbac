@@ -128,18 +128,11 @@ export default function OrganizationsDashboard() {
 		<>
 			<div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 fade-in">
 				<div>
-					<div className="flex items-center gap-3 text-palePeriwinkle text-xs font-mono mb-2">
-						<span className="uppercase opacity-70">SYSTEM</span>
-						<span className="opacity-30">/</span>
-						<span className="text-pearlWhite uppercase font-bold tracking-widest">
-							Organizations
-						</span>
-					</div>
 					<h1 className="text-3xl font-sans font-medium text-white mb-2">
 						Organizations
 					</h1>
 					<p className="text-palePeriwinkle/60 text-[10px] font-mono tracking-[0.4em]">
-						MANAGE_STRUCTURES.FXF
+						MANAGE_STRUCTURES.SYS
 					</p>
 				</div>
 				<button
@@ -152,24 +145,24 @@ export default function OrganizationsDashboard() {
 			</div>
 
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 fade-in delay-100">
-				<div className="stat-card rounded-xl p-6 border-l-2 border-l-palePeriwinkle/50">
-					<div className="text-[10px] font-mono text-lightLavender tracking-widest uppercase mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-palePeriwinkle/70">
+					<div className="text-[10px] font-mono text-lightLavender/80 tracking-widest uppercase mb-1 font-bold">
 						Total Orgs
 					</div>
 					<div className="text-2xl font-mono text-pearlWhite font-bold">
 						{stats.total.toString().padStart(2, "0")}
 					</div>
 				</div>
-				<div className="stat-card rounded-xl p-6 border-l-2 border-l-magentaViolet/50">
-					<div className="text-[10px] font-mono text-lightLavender tracking-widest uppercase mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-magentaViolet/70">
+					<div className="text-[10px] font-mono text-lightLavender/80 tracking-widest uppercase mb-1 font-bold">
 						Admin Access
 					</div>
 					<div className="text-2xl font-mono text-pearlWhite font-bold">
 						{stats.admin.toString().padStart(2, "0")}
 					</div>
 				</div>
-				<div className="stat-card rounded-xl p-6 border-l-2 border-l-royalBlue/50">
-					<div className="text-[10px] font-mono text-lightLavender tracking-widest uppercase mb-1">
+				<div className="stat-card rounded-xl p-6 border-l-2 border-l-royalBlue/70">
+					<div className="text-[10px] font-mono text-lightLavender/80 tracking-widest uppercase mb-1 font-bold">
 						Member Only
 					</div>
 					<div className="text-2xl font-mono text-pearlWhite font-bold">
@@ -201,7 +194,7 @@ export default function OrganizationsDashboard() {
 						filteredOrgs.map((org) => (
 							<div
 								key={org.publicKey.toBase58()}
-								className="glass-card rounded-2xl p-6 flex flex-col group hover:border-royalBlue/30 hover:bg-white/[0.03]"
+								className="glass-card glass-card-no-shift rounded-2xl p-6 flex flex-col group hover:border-royalBlue/30 hover:bg-white/3"
 							>
 								<div className="flex justify-between items-start mb-4">
 									<div className="w-10 h-10 rounded-lg bg-royalBlue/10 border border-royalBlue/20 flex items-center justify-center text-royalBlue font-bold font-mono text-lg">
@@ -220,27 +213,27 @@ export default function OrganizationsDashboard() {
 								<h3 className="text-lg font-semibold text-pearlWhite mb-1">
 									{org.name}
 								</h3>
-								<p className="text-[10px] font-mono text-palePeriwinkle/40 mb-6 truncate uppercase tracking-tight">
+								<p className="text-[10px] font-mono text-palePeriwinkle/70 mb-6 truncate uppercase tracking-tight font-medium">
 									ADDR: {org.publicKey.toBase58()}
 								</p>
 
 								<div className="grid grid-cols-2 gap-4 mb-8">
 									<div>
-										<div className="text-[9px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+										<div className="text-[9px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1 font-bold">
 											Members
 										</div>
-										<div className="text-sm text-pearlWhite font-mono">{org.memberCount}</div>
+										<div className="text-sm text-pearlWhite/90 font-mono font-bold">{org.memberCount}</div>
 									</div>
 									<div>
-										<div className="text-[9px] font-mono text-palePeriwinkle/40 uppercase tracking-widest mb-1">
+										<div className="text-[9px] font-mono text-palePeriwinkle/70 uppercase tracking-widest mb-1 font-bold">
 											Roles
 										</div>
-										<div className="text-sm text-pearlWhite font-mono">{org.roleCount}</div>
+										<div className="text-sm text-pearlWhite/90 font-mono font-bold">{org.roleCount}</div>
 									</div>
 								</div>
 
 								<div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
-									<span className="text-[9px] text-palePeriwinkle/40 font-mono tracking-wider uppercase">
+									<span className="text-[9px] text-palePeriwinkle/70 font-mono tracking-wider uppercase font-medium">
 										CREATED: {new Date(org.createdAt).toLocaleDateString()}
 									</span>
 									<Link
