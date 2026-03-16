@@ -205,3 +205,55 @@ export function useOrganizationHistory(orgId: string | undefined) {
 		staleTime: 1000 * 30, // History is relatively static, but we want it fresh-ish
 	});
 }
+
+export function usePermissibleOrganizations() {
+	const { program, wallet } = useAnchorProgram();
+
+	return useQuery({
+		queryKey: ["permissible-organisms", wallet?.publicKey.toBase58()],
+		queryFn: async () => {
+			if (!program || !wallet) return [];
+			
+			// Fetch orgs where user is admin
+			const adminOrgs = await program.account.organization.all([
+				{
+					memcmp: {
+						offset: 8 + 32, // discriminator + admin(32)
+						bytes: wallet.publicKey.toBase58(),
+					},
+				},
+			]);
+
+			// Fetch memberships for the user
+			const userMemberships = await program.account.membership.all([
+				{
+					memcmp: {
+						offset: 8 + 32, // discriminator + org(32) + member(32)
+						bytes: wallet.publicKey.toBase58(),
+					},
+				},
+			]);
+
+			const memberOrgPubkeys = userMemberships.map(m => (m.account as any).organization);
+			const memberOrgsRaw = await Promise.all(
+				memberOrgPubkeys.map(pubkey => program.account.organization.fetch(pubkey).catch(() => null))
+			);
+
+			const combined = [
+				...adminOrgs.map(o => ({ 
+					publicKey: o.publicKey, 
+					name: new TextDecoder().decode(Uint8Array.from((o.account as any).name)).replace(/\0/g, "") 
+				})),
+				...memberOrgsRaw.map((o, i) => o ? ({ 
+					publicKey: memberOrgPubkeys[i], 
+					name: new TextDecoder().decode(Uint8Array.from((o as any).name)).replace(/\0/g, "") 
+				}) : null)
+			].filter((item): item is { publicKey: PublicKey, name: string } => item !== null);
+
+			// Deduplicate
+			return combined.filter((v, i, a) => a.findIndex(t => t.publicKey.toBase58() === v.publicKey.toBase58()) === i);
+		},
+		enabled: !!program && !!wallet,
+		staleTime: 1000 * 60 * 5, // 5 minutes
+	});
+}
